@@ -210,6 +210,20 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
 .story-panel .choices .gbtn{min-width:340px; font-size:15px}
 .story-panel .choices .gbtn .sub{display:block; font-size:11.5px; color:var(--parch-dim); letter-spacing:.02em; margin-top:3px}
 
+/* ---------- curator screen ---------- */
+#screen-curator.on{display:flex; align-items:center; justify-content:center}
+#cur-head{display:flex; align-items:center; gap:16px; justify-content:center; margin-bottom:4px}
+#cur-portrait{border-radius:50%; border:2px solid var(--gold-dim);
+  background:radial-gradient(circle at 45% 35%, #241a12, #0c0806); box-shadow:0 0 16px rgba(0,0,0,.6)}
+#cur-shop{display:flex; gap:22px; justify-content:center; margin:16px 0 20px; min-height:40px}
+.shopitem{display:flex; flex-direction:column; align-items:center; gap:6px}
+.shopitem .card{margin:0; width:124px; height:175px}
+.shopitem .card:hover{transform:translateY(-8px) scale(1.1); margin:0}
+.shopitem .price{font-size:13px; color:var(--gold-hi); letter-spacing:.06em}
+.shopitem.sold .card{filter:grayscale(1) brightness(.5); pointer-events:none}
+.shopitem.unaffordable .card{filter:grayscale(.6) brightness(.7)}
+.shopitem.unaffordable .price{color:#8a6a5a}
+
 /* ---------- reward screen ---------- */
 #screen-reward.on{display:flex; align-items:center; justify-content:center}
 .reward-wrap{text-align:center; max-width:760px}
@@ -316,6 +330,25 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
       <div class="goldrule"></div>
       <div class="body" id="event-body"></div>
       <div class="choices" id="event-choices"></div>
+    </div>
+  </div>
+
+  <!-- CURATOR -->
+  <div class="screen" id="screen-curator">
+    <div class="story-panel" style="max-width:780px">
+      <div id="cur-head">
+        <canvas id="cur-portrait" width="76" height="76"></canvas>
+        <div style="text-align:left">
+          <h2 id="cur-name" style="margin:0"></h2>
+          <div class="small" id="cur-tagline" style="font-style:italic"></div>
+        </div>
+      </div>
+      <div class="body" id="cur-greet"></div>
+      <div class="body" id="cur-result" style="color:var(--gold-hi); display:none"></div>
+      <div class="choices" id="cur-services" style="margin-bottom:18px"></div>
+      <div class="small" style="letter-spacing:.22em; color:var(--gold-dim)">FIRST APPEARANCES — PRICED TO GRADE</div>
+      <div id="cur-shop"></div>
+      <button class="gbtn" id="btn-cur-leave">TAKE YOUR LEAVE</button>
     </div>
   </div>
 
@@ -446,6 +479,13 @@ const CHARS = {
   darkhold:     { name:'Darkhold',      hue:290, sil:'wraith' },
   silverflash:  { name:'Silverflash',   hue:220, sil:'rogue'  },
   ant:          { name:'Ant',           hue:95,  sil:'knight' },
+  /* curators — the life-sim six, moonlighting between floors */
+  nico:    { name:'Nico',    hue:150, sil:'rogue'  },
+  jorge:   { name:'Jorge',   hue:25,  sil:'brute'  },
+  sophia:  { name:'Sophia',  hue:210, sil:'wraith' },
+  gabby:   { name:'Gabby',   hue:330, sil:'rogue'  },
+  mateo:   { name:'Mateo',   hue:262, sil:'knight' },
+  laurent: { name:'Laurent', hue:55,  sil:'shield' },
 };
 const portraitCache = {};   // id -> Image or 'missing'
 function getPortrait(id){
@@ -1895,12 +1935,7 @@ function enterNode(node){
     case 'event':
       showEvent(); break;
     case 'curator':
-      /* phase-4 curators; for now the stall is shuttered */
-      showStory('A SHUTTERED STALL',
-        'Someone has set up shop between two dead mirrors — folding table, velvet cloth, a hand-lettered ' +
-        'sign: “BACK SOON — GONE TO APPRAISE.” A saucer of coins sits unattended.',
-        [{ label:'Take a polite commission', sub:'+8 ✦ Restoration',
-           fx: r => { r.restoration += 8; return 'You leave a note: “Owed to the House of Le Brun.”'; } }]);
+      showCurator();
       break;
   }
 }
@@ -1979,6 +2014,190 @@ function pickCardFromDeck(title, onPick){
   pickHandler = onPick;
   showPile(title, G.run.deck, true);
 }
+
+/* ---------------- curators: the life-sim six, between floors ---------------- */
+const CURATORS = {
+  sophia: {
+    char:'sophia', name:'Sophia', tagline:'Portfolio Manager, formerly of the 16th arrondissement',
+    greet:'“Sit, sit. Your cards are assets, monsieur Le Brun, and assets that sit idle are assets ' +
+          'losing to inflation. Shall we make your Restoration work for a living?”',
+    service:{
+      label:'The Versailles Wager',
+      sub: r => `Stake ✦ ${Math.floor(r.restoration/2)} — heads it doubles, tails she keeps it`,
+      canUse: r => r.restoration >= 10,
+      use(r){
+        const s = Math.floor(r.restoration/2);
+        if (rng() < 0.5){ r.restoration += s; return `The coin lands sun-side up. +✦ ${s}. “Compound interest, chéri.”`; }
+        r.restoration -= s; return `The coin lands glass-side. −✦ ${s}. “Market conditions,” she shrugs, pocketing it.`;
+      }
+    }
+  },
+  jorge: {
+    char:'jorge', name:'Jorge', tagline:'Contract Specialist — everything notarized, everything final',
+    greet:'“I don’t do loopholes and I don’t do refunds. You got a card dragging your ledger down, ' +
+          'I’ll write it out of existence. Clean. Legal. Mostly.”',
+    service:{
+      label:'Severance Contract', cost:12,
+      sub: () => 'Pay ✦ 12 — remove one card from your deck, permanently',
+      canUse: r => r.restoration >= 12 && r.deck.length > 5,
+      pickCard:{ title:'Choose a First Appearance to release from service' },
+      use(r, card){
+        r.restoration -= 12;
+        r.deck = r.deck.filter(c => c.uid !== card.uid);
+        return `Jorge stamps the contract. ${cardName(card)} (${card.grade.toFixed(1)}) walks free of the vault.`;
+      }
+    }
+  },
+  nico: {
+    char:'nico', name:'Nico', tagline:'Restoration Artist — “remixes”, he insists, not forgeries',
+    greet:'“Grades are a vibe, my friend. Bring me a slab, I crack it, re-press it, re-grade it. ' +
+          'Usually it comes back better. Usually.”',
+    service:{
+      label:'The Remix', cost:10,
+      sub: () => 'Pay ✦ 10 — re-grade one card (two rolls, keep the higher)',
+      canUse: r => r.restoration >= 10,
+      pickCard:{ title:'Choose a First Appearance to remix' },
+      use(r, card){
+        r.restoration -= 10;
+        const old = card.grade;
+        card.grade = Math.max(rollGrade(), rollGrade());
+        if (card.grade > 3.5 && old <= 3.5) card.quirk = null;
+        if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
+        return `Nico works behind a curtain, whistling. ${cardName(card)}: ${old.toFixed(1)} → <b>${card.grade.toFixed(1)}</b>.`;
+      }
+    }
+  },
+  laurent: {
+    char:'laurent', name:'Laurent', tagline:'Master-at-Arms (retired) — posture first, glory later',
+    greet:'“The mirrors hit exactly as hard as you let them. Shoulders back. Breathe from the floor. ' +
+          'Twelve Restoration and I will make your body remember it belongs to a Le Brun.”',
+    service:{
+      label:'The Old Drill', cost:12,
+      sub: () => 'Pay ✦ 12 — +7 Max HP, and heal 7',
+      canUse: r => r.restoration >= 12,
+      use(r){
+        r.restoration -= 12; r.maxHp += 7; r.hp = Math.min(r.maxHp, r.hp + 7);
+        return '“Again. AGAIN. …Acceptable.” You stand straighter than you have in years.';
+      }
+    }
+  },
+  gabbymateo: {
+    char:'gabby', char2:'mateo', name:'Gabby & Mateo', tagline:'A double act — dreams sold separately',
+    greet:'“Welcome, welcome! One night only!” Mateo produces a velvet box; Gabby produces a coin. ' +
+          '“Place a card in the box, flip the coin, and perhaps — PERHAPS — there will be two.”',
+    service:{
+      label:'Double or Nothing', cost:8,
+      sub: () => 'Pay ✦ 8 — 50% chance to duplicate a card of your choice',
+      canUse: r => r.restoration >= 8,
+      pickCard:{ title:'Choose a First Appearance for the box' },
+      use(r, card){
+        r.restoration -= 8;
+        if (rng() < 0.5){
+          r.deck.push(makeCard(card.defId, card.grade, card.quirk));
+          return `The box opens on TWO ${cardName(card)}s. Gabby takes a bow. Mateo takes the credit.`;
+        }
+        return 'The box opens on one card and a puff of theatrical smoke. “The house,” Mateo says gravely, “always wins.”';
+      }
+    }
+  },
+};
+const CURATOR_KEYS = Object.keys(CURATORS);
+
+function shopPrice(card){
+  let p = Math.round(6 + card.grade * 2.4);
+  if (card.quirk) p = Math.round(p * 0.7);
+  return p;
+}
+
+let curatorVisit = null;
+function showCurator(){
+  const run = G.run;
+  const fresh = CURATOR_KEYS.filter(k => k !== run.lastCurator);
+  const key = pick(fresh);
+  run.lastCurator = key;
+  curatorVisit = { key, usedService:false, stock:[makeDrop(), makeDrop(), makeDrop()], result:null, sold:[] };
+  renderCurator();
+  showScreen('curator');
+}
+
+function renderCurator(){
+  const v = curatorVisit;
+  const C = CURATORS[v.key];
+  const run = G.run;
+  $('#cur-name').textContent = C.name;
+  $('#cur-tagline').textContent = C.tagline;
+  $('#cur-greet').textContent = C.greet;
+  const res = $('#cur-result');
+  if (v.result){ res.style.display = ''; res.innerHTML = '<i>' + v.result + '</i>'; }
+  else res.style.display = 'none';
+
+  /* portrait chip (or two, for the double act) */
+  const pc = $('#cur-portrait');
+  const pctx = pc.getContext('2d');
+  pctx.clearRect(0,0,pc.width,pc.height);
+  const drawChip = (charId, x, w) => {
+    const ch = CHARS[charId];
+    const img = getPortrait(charId);
+    if (img !== 'missing' && img.complete) pctx.drawImage(img, x, 4, w, pc.height-8);
+    else drawSilhouette(pctx, x+6, 8, w-12, pc.height-16, ch);
+  };
+  if (C.char2){ drawChip(C.char, 0, pc.width/2); drawChip(C.char2, pc.width/2, pc.width/2); }
+  else drawChip(C.char, 8, pc.width-16);
+
+  /* service button */
+  const sv = $('#cur-services');
+  sv.innerHTML = '';
+  const b = document.createElement('button');
+  b.className = 'gbtn';
+  const s = C.service;
+  b.innerHTML = s.label + `<span class="sub">${typeof s.sub === 'function' ? s.sub(run) : s.sub}</span>`;
+  b.disabled = v.usedService || !s.canUse(run);
+  b.addEventListener('click', () => {
+    if (v.usedService || !s.canUse(run)) return;
+    if (s.pickCard){
+      pickCardFromDeck(s.pickCard.title, card => {
+        v.usedService = true;
+        v.result = s.use(run, card);
+        renderCurator(); refreshHud();
+      });
+    } else {
+      v.usedService = true;
+      v.result = s.use(run);
+      renderCurator(); refreshHud();
+    }
+  });
+  sv.appendChild(b);
+
+  /* shop stock */
+  const shop = $('#cur-shop');
+  shop.innerHTML = '';
+  v.stock.forEach((card, i) => {
+    const item = document.createElement('div');
+    item.className = 'shopitem';
+    const price = shopPrice(card);
+    const sold = v.sold.includes(i);
+    if (sold) item.classList.add('sold');
+    else if (run.restoration < price) item.classList.add('unaffordable');
+    const el = cardEl(card);
+    if (!sold && run.restoration >= price){
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        run.restoration -= price;
+        run.deck.push(card);
+        v.sold.push(i);
+        v.result = `${cardName(card)} (${card.grade.toFixed(1)}) joins your ledger for ✦ ${price}.`;
+        renderCurator(); refreshHud();
+      });
+    }
+    item.appendChild(el);
+    const tag = document.createElement('div');
+    tag.className = 'price';
+    tag.textContent = sold ? 'SOLD' : '✦ ' + price;
+    item.appendChild(tag);
+    shop.appendChild(item);
+  });
+}
+$('#btn-cur-leave').addEventListener('click', () => { curatorVisit = null; finishNode(); });
 
 /* --- floor transition & upkeep --- */
 function payUpkeep(){
