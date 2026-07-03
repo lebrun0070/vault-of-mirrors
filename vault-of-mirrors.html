@@ -237,6 +237,32 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
 .card.qualified .glabel .gnum, .card.qualified .glabel .gname{color:#1d2a16}
 .card .quirkline{font-size:8.5px; color:#b7d49e; font-style:italic; text-align:center; padding:1px 6px 3px}
 
+/* ---------- ledger ---------- */
+#screen-ledger.on{display:flex; align-items:center; justify-content:center}
+.ledger-wrap{max-width:880px; max-height:90%; overflow:auto; padding:26px 40px;
+  background:linear-gradient(180deg,rgba(26,20,14,.95),rgba(13,10,7,.95));
+  border:1px solid var(--gold-dim); border-radius:6px; box-shadow:0 12px 60px rgba(0,0,0,.8)}
+#ledger-stats{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px}
+#ledger-stats .stat{background:rgba(0,0,0,.4); border:1px solid #33291c; border-radius:4px;
+  padding:8px 18px; text-align:center; min-width:110px}
+#ledger-stats .stat .v{font-size:22px; color:var(--gold-hi)}
+#ledger-stats .stat .k{font-size:10px; letter-spacing:.18em; color:var(--parch-dim); text-transform:uppercase; margin-top:2px}
+#ledger-census{display:grid; grid-template-columns:repeat(5,1fr); gap:10px}
+.census-cell{display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.35);
+  border:1px solid #2c2418; border-radius:4px; padding:6px 9px}
+.census-cell canvas{border-radius:50%; border:1px solid #3a2e20; flex-shrink:0}
+.census-cell .cn{font-size:12px; color:var(--parch); line-height:1.2}
+.census-cell .cd{font-size:10px; color:var(--parch-dim)}
+.census-cell .cd b{color:var(--gold-hi)}
+.census-cell.locked{opacity:.4; font-style:italic}
+.census-cell .gembadge{margin-left:auto; font-size:10px; color:#1c1812; background:linear-gradient(180deg,#f7ecc4,#e0c878);
+  border-radius:3px; padding:1px 5px; font-weight:bold}
+
+/* discovery ribbon on reward cards */
+.card .discovery{position:absolute; top:34px; right:-6px; z-index:7; font-size:8px; letter-spacing:.1em;
+  background:linear-gradient(180deg,#8c2f24,#6e1f16); color:#f5e0c8; padding:2px 8px;
+  border:1px solid #b0563e; border-radius:2px; transform:rotate(6deg); box-shadow:0 2px 8px rgba(0,0,0,.6)}
+
 /* status icons */
 .sticon{display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:1px 6px;
   border-radius:3px; background:rgba(0,0,0,.55); border:1px solid #3a2e20}
@@ -258,9 +284,26 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
       into enchanted mirror-frames — each sealed at its First Appearance — to protect France.
       You have inherited the vault key. Descend.</div>
     <div style="display:flex; gap:14px; margin-top:18px">
+      <button class="gbtn" id="btn-continue" style="display:none">CONTINUE THE DESCENT</button>
       <button class="gbtn" id="btn-newrun">DESCEND INTO THE VAULT</button>
+      <button class="gbtn" id="btn-ledger">RESTORATION LEDGER</button>
+    </div>
+    <div id="sig-row" style="display:none; margin-top:14px">
+      <button class="gbtn" id="btn-sig" style="font-size:13px; padding:7px 18px"></button>
     </div>
     <div class="small" style="margin-top:26px; opacity:.7" id="title-foot">The vault remembers nothing yet.</div>
+  </div>
+
+  <!-- RESTORATION LEDGER -->
+  <div class="screen" id="screen-ledger">
+    <div class="ledger-wrap">
+      <h2 style="color:var(--gold-hi); letter-spacing:.16em; text-align:center">THE RESTORATION LEDGER</h2>
+      <div class="goldrule"></div>
+      <div id="ledger-stats"></div>
+      <div class="small" style="text-align:center; letter-spacing:.22em; color:var(--gold-dim); margin:16px 0 10px">CENSUS OF FIRST APPEARANCES</div>
+      <div id="ledger-census"></div>
+      <div style="text-align:center; margin-top:18px"><button class="gbtn" id="btn-ledger-back">CLOSE THE LEDGER</button></div>
+    </div>
   </div>
 
   <!-- COMBAT -->
@@ -436,6 +479,26 @@ const Store = (() => {
     set(k, v){ try { const s = JSON.stringify(v); if (ok) localStorage.setItem(k, s); else mem[k]=s; } catch(e){} }
   };
 })();
+
+/* ---------------- meta-progression (persists between runs) ---------------- */
+const META_KEY = 'vom_meta', RUN_KEY = 'vom_run';
+/* the draft pool starts small; the rest are discovered mid-run, permanently */
+const INITIAL_UNLOCKS = ['spider','cadet','veil','nathan','silverflash','tifa','cloud','scarletwitch'];
+let META = Store.get(META_KEY, null) || {
+  runs: 0, wins: 0, sigWins: 0, bestFloor: 0, fastestClearMs: null,
+  census: {},                    // defId -> { count, bestGrade }
+  unlocked: [...INITIAL_UNLOCKS],
+};
+function saveMeta(){ Store.set(META_KEY, META); }
+function recordCensus(card){
+  const c = META.census[card.defId] || (META.census[card.defId] = { count: 0, bestGrade: 0 });
+  c.count++;
+  c.bestGrade = Math.max(c.bestGrade, card.grade);
+  saveMeta();
+}
+function unlockChar(defId){
+  if (!META.unlocked.includes(defId)){ META.unlocked.push(defId); saveMeta(); }
+}
 
 /* ---------------- grading ---------------- */
 const GRADE_STEPS = [2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.2,9.4,9.6,9.8];
@@ -740,7 +803,12 @@ function makeCard(defId, grade, quirk){
   if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
   return card;
 }
-function makeDrop(){ return makeCard(pick(DROP_POOL), rollGrade()); }
+function makeDrop(){ return makeCard(pick(META.unlocked), rollGrade()); }
+/* every acquisition is logged in the census registry */
+function addCardToDeck(card){
+  G.run.deck.push(card);
+  recordCensus(card);
+}
 function cardDef(c){ return CARDS[c.defId]; }
 function cardName(c){ return CHARS[cardDef(c).char].name; }
 function cardCost(c){
@@ -887,9 +955,28 @@ function newRunState(){
     floor: 1,
     map: null, pos: null,
     usedEvents: [],
+    sig: false,
     startedAt: Date.now(),
   };
   return run;
+}
+
+/* --- mid-run persistence: the vault holds your place between sittings --- */
+function saveRun(){
+  const run = G.run;
+  if (!run) return;
+  Store.set(RUN_KEY, { ...run, elapsed: Date.now() - run.startedAt });
+}
+function clearSavedRun(){ Store.set(RUN_KEY, null); }
+function loadSavedRun(){
+  const s = Store.get(RUN_KEY, null);
+  if (!s || !s.map) return null;
+  s.startedAt = Date.now() - (s.elapsed || 0);
+  delete s.elapsed;
+  /* keep uid() ahead of every restored card so new cards never collide */
+  const maxUid = Math.max(0, ...s.deck.map(c => c.uid));
+  _uid = Math.max(_uid, maxUid + 1);
+  return s;
 }
 
 function polishCard(card){
@@ -1015,7 +1102,7 @@ const EVENTS = [
          'a First Appearance, half-sealed, reaching toward your hand.',
     choices:[
       { label:'Reach into the glass', sub:'Gain a high-grade card, take 8 damage',
-        fx: run => { const card = makeCard(pick(DROP_POOL), pick([8.0,8.5,9.0,9.2])); run.deck.push(card);
+        fx: run => { const card = makeCard(pick(META.unlocked), pick([8.0,8.5,9.0,9.2])); addCardToDeck(card);
           run.hp = Math.max(1, run.hp - 8); return `Glass bites your wrist. You pull free ${cardName(card)} — graded ${card.grade.toFixed(1)}.`; } },
       { label:'Let it sleep', sub:'Leave, and steady your nerves (+3 HP)',
         fx: run => { run.hp = Math.min(run.maxHp, run.hp + 3); return 'You bow to the broken frame and move on.'; } },
@@ -1056,7 +1143,7 @@ const EVENTS = [
       { label:'Meet its gaze', sub:'Duplicate your highest-grade card, lose 10 ✦',
         fx: run => { if (run.restoration < 10) return 'The glass clouds over. It wants ✦ 10 you do not have.';
           run.restoration -= 10; const best = [...run.deck].sort((a,b)=>b.grade-a.grade)[0];
-          const copy = makeCard(best.defId, best.grade, best.quirk); run.deck.push(copy);
+          const copy = makeCard(best.defId, best.grade, best.quirk); addCardToDeck(copy);
           return `The mirror keeps your reflection and returns a second ${cardName(best)}.`; } },
       { label:'Turn it face down', sub:'Nothing happens. Probably.',
         fx: () => 'You set it down gently, glass to the velvet. The room exhales.' },
@@ -1069,7 +1156,7 @@ function newCombat(enemyIds, title){
   const enemies = enemyIds.map((id, i) => {
     const d = ENEMIES[id];
     const tier = run.floor - 1;
-    let hp = Math.round(rndi(d.hp[0], d.hp[1]) * (1 + 0.35*tier));
+    let hp = Math.round(rndi(d.hp[0], d.hp[1]) * (1 + 0.35*tier) * (run.sig ? 1.28 : 1));
     let name = d.name;
     if (id === 'zorr'){
       name = ZORR_TITLES[run.floor - 1];
@@ -1078,6 +1165,7 @@ function newCombat(enemyIds, title){
     return {
       id: uid(), defId: id, char: CHARS[d.char], name,
       hp, maxHp: hp, block: 0, tier, isBoss: !!d.boss,
+      dmgBonus: run.sig ? 2 : 0,
       status: {}, nextMove: null, slot: i,
       shakeT: 0, flashT: 0, dead: false, deathT: 0,
     };
@@ -1289,7 +1377,7 @@ async function endTurn(){
       case 'attack': {
         for (let i=0;i<(mv.times||1);i++){
           if (c.phase === 'lost') break;
-          const dmg = calcAttack(mv.dmg, e.status, {vuln: c.pStatus.vuln});
+          const dmg = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: c.pStatus.vuln});
           damagePlayer(dmg);
           addFx('slash', {});
           await sleep(260);
@@ -1301,7 +1389,7 @@ async function endTurn(){
         addFx('text', { x:e.cx, y:e.cy-40, txt:'+'+mv.block+' 🛡', color:'#9db8d4' });
         break;
       case 'attack_block': {
-        const dmg = calcAttack(mv.dmg, e.status, {vuln: c.pStatus.vuln});
+        const dmg = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: c.pStatus.vuln});
         damagePlayer(dmg); addFx('slash', {});
         e.block += mv.block;
         break;
@@ -1346,9 +1434,19 @@ function afterReward(){
 function showRewardScreen(resto, isElite){
   /* elites shake loose better-preserved slabs: roll twice, keep the higher grade */
   const roll = () => isElite
-    ? makeCard(pick(DROP_POOL), Math.max(rollGrade(), rollGrade()))
+    ? makeCard(pick(META.unlocked), Math.max(rollGrade(), rollGrade()))
     : makeDrop();
   const offers = [roll(), roll(), roll()];
+  /* discoveries: still-sealed First Appearances surface in the rubble,
+     permanently joining the draft pool once seen */
+  const locked = DROP_POOL.filter(id => !META.unlocked.includes(id));
+  if (locked.length && (isElite || rng() < 0.3)){
+    const id = pick(locked);
+    unlockChar(id);
+    const disc = makeCard(id, isElite ? Math.max(rollGrade(), rollGrade()) : rollGrade());
+    disc._discovery = true;
+    offers[rndi(0, offers.length - 1)] = disc;
+  }
   $('#reward-resto').innerHTML = `The shattered frames yield <b>✦ ${resto}</b> Restoration.` +
     `  <span class="small">(You hold ✦ ${G.run.restoration}.)</span>`;
   const box = $('#reward-cards');
@@ -1357,7 +1455,7 @@ function showRewardScreen(resto, isElite){
     const el = cardEl(card);
     el.classList.add('reward-card');
     el.addEventListener('click', () => {
-      G.run.deck.push(card);
+      addCardToDeck(card);
       afterReward();
     });
     box.appendChild(el);
@@ -1374,6 +1472,9 @@ function loseCombat(){
   if (c.phase === 'lost') return;
   c.phase = 'lost';
   const floorName = FLOORS[G.run.floor - 1].name;
+  META.bestFloor = Math.max(META.bestFloor, G.run.floor);
+  saveMeta();
+  clearSavedRun();
   setTimeout(() => {
     $('#death-note').innerHTML =
       'The last thing you see is your own reflection, smiling without you.<br>' +
@@ -1634,12 +1735,12 @@ function drawEnemy(e, time, targetable){
     ctx.fillStyle = '#e8d8b0';
     let intentTxt = '';
     if (mv.type === 'attack'){
-      const shown = calcAttack(mv.dmg, e.status, {vuln: cb().pStatus.vuln});
+      const shown = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: cb().pStatus.vuln});
       intentTxt = '🗡 ' + shown + (mv.times>1 ? '×'+mv.times : '');
     }
     else if (mv.type === 'block') intentTxt = '🛡 ' + mv.block;
     else if (mv.type === 'attack_block'){
-      const shown = calcAttack(mv.dmg, e.status, {vuln: cb().pStatus.vuln});
+      const shown = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: cb().pStatus.vuln});
       intentTxt = '🗡 ' + shown + ' 🛡';
     }
     else if (mv.type === 'buff') intentTxt = '☗';
@@ -1790,6 +1891,7 @@ function cardEl(card, mini){
       </div>
       <div class="wear"></div>
     </div>
+    ${card._discovery ? '<div class="discovery">NEWLY FOUND</div>' : ''}
     <div class="cost">${cardCost(card)}</div>`;
   /* placeholder art */
   const sc = el.querySelector('canvas.sil');
@@ -1981,6 +2083,7 @@ function renderMap(){
 function showMap(){
   showScreen('map');
   renderMap();
+  saveRun();
 }
 
 function enterNode(node){
@@ -2156,7 +2259,7 @@ const CURATORS = {
       use(r, card){
         r.restoration -= 8;
         if (rng() < 0.5){
-          r.deck.push(makeCard(card.defId, card.grade, card.quirk));
+          addCardToDeck(makeCard(card.defId, card.grade, card.quirk));
           return `The box opens on TWO ${cardName(card)}s. Gabby takes a bow. Mateo takes the credit.`;
         }
         return 'The box opens on one card and a puff of theatrical smoke. “The house,” Mateo says gravely, “always wins.”';
@@ -2246,7 +2349,7 @@ function renderCurator(){
       el.style.cursor = 'pointer';
       el.addEventListener('click', () => {
         run.restoration -= price;
-        run.deck.push(card);
+        addCardToDeck(card);
         v.sold.push(i);
         v.result = `${cardName(card)} (${card.grade.toFixed(1)}) joins your ledger for ✦ ${price}.`;
         renderCurator(); refreshHud();
@@ -2285,7 +2388,14 @@ function floorTransition(){
   const run = G.run;
   if (run.floor >= FLOORS.length){
     /* the vault is cleared */
-    const mins = Math.floor((Date.now() - run.startedAt)/60000);
+    const ms = Date.now() - run.startedAt;
+    const mins = Math.floor(ms/60000);
+    META.wins++;
+    if (run.sig) META.sigWins++;
+    META.bestFloor = FLOORS.length;
+    if (META.fastestClearMs == null || ms < META.fastestClearMs) META.fastestClearMs = ms;
+    saveMeta();
+    clearSavedRun();
     $('#victory-note').innerHTML =
       'Zorr’s warhammer falls from fingers of ash, and every frame in the Hall of Mirrors ' +
       'goes quiet at once. The First of the Sealed is sealed no more — he is free, and so are you.<br>' +
@@ -2318,17 +2428,113 @@ function runDied(note){
   G.combat = null;
 }
 
-$('#btn-newrun').addEventListener('click', () => {
+/* ---------------- title, ledger & meta UI ---------------- */
+let sigNext = false;
+function renderTitle(){
+  const saved = Store.get(RUN_KEY, null);
+  $('#btn-continue').style.display = (saved && saved.map) ? '' : 'none';
+  const sigRow = $('#sig-row');
+  if (META.wins > 0){
+    sigRow.style.display = '';
+    $('#btn-sig').innerHTML = (sigNext ? '✒ ' : '') + 'SIGNATURE SERIES: ' + (sigNext ? 'ON' : 'OFF') +
+      ' <span class="small">(+28% enemy HP, harder blows)</span>';
+    $('#btn-sig').style.borderColor = sigNext ? 'var(--gold-hi)' : '';
+  } else sigRow.style.display = 'none';
+  const f = $('#title-foot');
+  if (META.runs === 0){
+    f.textContent = 'The vault remembers nothing yet.';
+  } else {
+    const fastest = META.fastestClearMs != null ? `${Math.floor(META.fastestClearMs/60000)}m ${Math.floor(META.fastestClearMs/1000)%60}s` : '—';
+    f.innerHTML = `The vault remembers: <b>${META.runs}</b> descents · <b>${META.wins}</b> clears` +
+      (META.sigWins ? ` · <b>${META.sigWins}</b> signature clears` : '') +
+      ` · deepest floor <b>${META.bestFloor || '—'}</b> · fastest clear <b>${fastest}</b>` +
+      ` · <b>${META.unlocked.length}/${DROP_POOL.length}</b> First Appearances catalogued`;
+  }
+}
+
+function startNewRun(){
+  META.runs++; saveMeta();
   G.run = newRunState();
+  G.run.sig = sigNext;
   G.run.map = genFloorMap(0);
   showMap();
+}
+
+$('#btn-newrun').addEventListener('click', startNewRun);
+$('#btn-continue').addEventListener('click', () => {
+  const s = loadSavedRun();
+  if (!s){ renderTitle(); return; }
+  G.run = s;
+  showMap();
 });
-$('#btn-viewdeck').addEventListener('click', () => { pickHandler = null; showPile('Your Ledger — ' + G.run.deck.length + ' First Appearances', G.run.deck); });
-$('#btn-go-title').addEventListener('click', () => { G.run = null; showScreen('title'); });
-$('#btn-vic-title').addEventListener('click', () => { G.run = null; showScreen('title'); });
+$('#btn-sig').addEventListener('click', () => { sigNext = !sigNext; renderTitle(); });
+$('#btn-ledger').addEventListener('click', () => { renderLedger(); showScreen('ledger'); });
+$('#btn-ledger-back').addEventListener('click', () => { showScreen('title'); renderTitle(); });
+
+function renderLedger(){
+  const fastest = META.fastestClearMs != null
+    ? `${Math.floor(META.fastestClearMs/60000)}m ${Math.floor(META.fastestClearMs/1000)%60}s` : '—';
+  $('#ledger-stats').innerHTML = [
+    ['Descents', META.runs],
+    ['Vault Clears', META.wins],
+    ['Signature Clears', META.sigWins],
+    ['Deepest Floor', META.bestFloor || '—'],
+    ['Fastest Clear', fastest],
+  ].map(([k,v]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+
+  const box = $('#ledger-census');
+  box.innerHTML = '';
+  const roster = ['one','two','three','four','five', ...DROP_POOL];
+  roster.forEach(id => {
+    const ch = CHARS[id];
+    const c = META.census[id];
+    const unlockedChar = META.unlocked.includes(id) || ['one','two','three','four','five'].includes(id);
+    const cell = document.createElement('div');
+    cell.className = 'census-cell' + (unlockedChar ? '' : ' locked');
+    const cv = document.createElement('canvas');
+    cv.width = 34; cv.height = 34;
+    const cctx = cv.getContext('2d');
+    if (unlockedChar){
+      const img = getPortrait(id);
+      if (img !== 'missing' && img.complete) cctx.drawImage(img, 0, 0, 34, 34);
+      else drawSilhouette(cctx, 5, 3, 24, 28, ch);
+    } else {
+      cctx.fillStyle = '#241c12'; cctx.fillRect(0,0,34,34);
+      cctx.fillStyle = '#5c5442'; cctx.font = '16px Georgia'; cctx.textAlign = 'center';
+      cctx.fillText('?', 17, 22);
+    }
+    cell.appendChild(cv);
+    const txt = document.createElement('div');
+    txt.innerHTML = `<div class="cn">${unlockedChar ? ch.name : 'Still Sealed'}</div>` +
+      `<div class="cd">${c ? `found ×<b>${c.count}</b>` : (unlockedChar ? 'never restored' : 'undiscovered')}</div>`;
+    cell.appendChild(txt);
+    if (c && c.bestGrade >= 9.0){
+      const g = document.createElement('span');
+      g.className = 'gembadge';
+      g.textContent = c.bestGrade.toFixed(1);
+      g.title = 'Best grade in the census';
+      cell.appendChild(g);
+    } else if (c){
+      const g = document.createElement('span');
+      g.className = 'cd'; g.style.marginLeft = 'auto';
+      g.innerHTML = `<b>${c.bestGrade.toFixed(1)}</b>`;
+      cell.appendChild(g);
+    }
+    box.appendChild(cell);
+  });
+}
+
+$('#btn-viewdeck').addEventListener('click', () => {
+  pickHandler = null;
+  showPile('Your Ledger — ' + G.run.deck.length + ' First Appearances',
+    [...G.run.deck].sort((a,b) => b.grade - a.grade));
+});
+$('#btn-go-title').addEventListener('click', () => { G.run = null; showScreen('title'); renderTitle(); });
+$('#btn-vic-title').addEventListener('click', () => { G.run = null; showScreen('title'); renderTitle(); });
 $('#end-turn').addEventListener('click', endTurn);
 
 showScreen('title');
+renderTitle();
 </script>
 </body>
 </html>
