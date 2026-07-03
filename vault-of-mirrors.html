@@ -170,6 +170,19 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
 #screen-victory h1{font-size:44px; color:var(--gold-hi); letter-spacing:.14em; text-shadow:0 0 30px rgba(201,162,39,.5)}
 .deathnote{color:var(--parch-dim); font-style:italic; margin:16px 0 24px; max-width:520px; line-height:1.6}
 
+/* ---------- reward screen ---------- */
+#screen-reward.on{display:flex; align-items:center; justify-content:center}
+.reward-wrap{text-align:center; max-width:760px}
+#reward-cards{display:flex; gap:34px; justify-content:center; margin:30px 0 26px}
+#reward-cards .card{margin:0; width:150px; height:212px}
+#reward-cards .card:hover{transform:translateY(-10px) scale(1.12); margin:0}
+#reward-cards .card:hover .slab{box-shadow:0 0 0 2px var(--gold-hi), 0 0 30px rgba(240,217,140,.45)}
+
+/* quirk (qualified) styling */
+.card.qualified .glabel{background:linear-gradient(180deg,#9fbf8a,#7da368)}
+.card.qualified .glabel .gnum, .card.qualified .glabel .gname{color:#1d2a16}
+.card .quirkline{font-size:8.5px; color:#b7d49e; font-style:italic; text-align:center; padding:1px 6px 3px}
+
 /* status icons */
 .sticon{display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:1px 6px;
   border-radius:3px; background:rgba(0,0,0,.55); border:1px solid #3a2e20}
@@ -221,6 +234,18 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
       </div>
       <button class="gbtn" id="end-turn">END TURN</button>
       <div id="hand"></div>
+    </div>
+  </div>
+
+  <!-- REWARD -->
+  <div class="screen" id="screen-reward">
+    <div class="reward-wrap">
+      <h2 style="color:var(--gold-hi); letter-spacing:.14em">THE FRAMES FALL SILENT</h2>
+      <div class="goldrule"></div>
+      <div class="small" id="reward-resto" style="font-size:15px"></div>
+      <div class="small" style="margin-top:14px; letter-spacing:.18em; color:var(--gold-dim)">CHOOSE ONE FIRST APPEARANCE TO RESTORE</div>
+      <div id="reward-cards"></div>
+      <button class="gbtn" id="btn-reward-skip">LEAVE THEM BURIED&nbsp;&nbsp;<span class="small">+6 ✦</span></button>
     </div>
   </div>
 
@@ -314,11 +339,21 @@ const CHARS = {
   three: { name:'Three', hue:8,   sil:'rogue'  },
   four:  { name:'Four',  hue:130, sil:'shield' },
   five:  { name:'Five',  hue:275, sil:'brute'  },
-  /* enemy-only for now; join the card pool in later phases */
-  cadet:      { name:'Cadet',      hue:210, sil:'knight' },
-  spider:     { name:'Spider',     hue:355, sil:'rogue'  },
-  veil:       { name:'Veil',       hue:265, sil:'wraith' },
-  enforcer:   { name:'Enforcer',   hue:30,  sil:'brute'  },
+  spider:       { name:'Spider',        hue:355, sil:'rogue'  },
+  deadpool:     { name:'Deadpool',      hue:0,   sil:'rogue'  },
+  scarletwitch: { name:'Scarlet Witch', hue:340, sil:'wraith' },
+  cloud:        { name:'Cloud',         hue:48,  sil:'knight' },
+  tifa:         { name:'Tifa',          hue:15,  sil:'rogue'  },
+  nathan:       { name:'Nathan',        hue:190, sil:'knight' },
+  cadet:        { name:'Cadet',         hue:210, sil:'knight' },
+  magnolia:     { name:'Magnolia',      hue:315, sil:'wraith' },
+  enforcer:     { name:'Enforcer',      hue:30,  sil:'brute'  },
+  veil:         { name:'Veil',          hue:265, sil:'wraith' },
+  spiderdemon:  { name:'Spiderdemon',   hue:12,  sil:'brute'  },
+  tornada:      { name:'Tornada',       hue:180, sil:'wraith' },
+  darkhold:     { name:'Darkhold',      hue:290, sil:'wraith' },
+  silverflash:  { name:'Silverflash',   hue:220, sil:'rogue'  },
+  ant:          { name:'Ant',           hue:95,  sil:'knight' },
 };
 const portraitCache = {};   // id -> Image or 'missing'
 function getPortrait(id){
@@ -390,9 +425,46 @@ function drawSilhouette(ctx, x, y, w, h, char, alpha){
   ctx.restore();
 }
 
+/* ---------------- quirks (low-grade damage traits) ---------------- */
+/* CGC-style "qualified" cards: damaged copies with a twist. */
+const QUIRKS = {
+  brittle: { label:'Brittle', mult:1.25,
+    desc:'+25% power. 25% chance to Exhaust when played.' },
+  foxed:   { label:'Foxed',   mult:1.20,
+    desc:'+20% power. First play each combat costs 1 more.' },
+  haunted: { label:'Haunted', mult:1.30,
+    desc:'+30% power. Take 1 damage when played.' },
+  faded:   { label:'Faded',   mult:0.90,
+    desc:'−10% power. It has seen better centuries.' },
+};
+
+/* weighted grade drop: mid grades common, gems rare */
+function rollGrade(){
+  const r = rng();
+  if (r < 0.20) return pick([2.5, 3.0, 3.5]);                            // low
+  if (r < 0.78) return pick([4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5]);   // mid
+  if (r < 0.95) return pick([8.0, 8.5, 9.0]);                            // high
+  return pick([9.2, 9.4, 9.6, 9.8]);                                     // gem
+}
+
+/* high-grade slabs demand Restoration upkeep at each floor transition */
+function upkeepCost(card){
+  return card.grade >= 8.0 ? Math.ceil((card.grade - 7.5) * 4) : 0;
+}
+/* unpaid upkeep wears the card down one grade step */
+function degradeCard(card){
+  const i = GRADE_STEPS.indexOf(card.grade);
+  if (i > 0) card.grade = GRADE_STEPS[i-1];
+  if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
+}
+
 /* ---------------- card definitions ---------------- */
-/* v(base, card) — grade-scaled value; text() must mirror play() */
-function sv(base, card){ return Math.max(1, Math.round(base * gradeMult(card.grade))); }
+/* sv(base, card) — grade- and quirk-scaled value; text() must mirror play() */
+function sv(base, card){
+  let m = gradeMult(card.grade);
+  if (card.quirk) m *= QUIRKS[card.quirk].mult;
+  return Math.max(1, Math.round(base * m));
+}
 
 const CARDS = {
   one: {
@@ -420,14 +492,110 @@ const CARDS = {
     text: c => `Deal <b>${sv(11,c)}</b> damage. Apply 1 <b>Weak</b>.`,
     play: (c, api, t) => { api.attack(t, sv(11,c)); api.status(t, 'weak', 1); },
   },
+
+  /* ---- the standard roster: First Appearances found in the vault ---- */
+  spider: {
+    char:'spider', title:'The Web-Bound', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(5,c)}</b> damage. Apply 1 <b>Weak</b>.`,
+    play: (c, api, t) => { api.attack(t, sv(5,c)); api.status(t, 'weak', 1); },
+  },
+  deadpool: {
+    char:'deadpool', title:'The Unkillable Jest', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(10,c)}</b> damage. Take 3 damage.`,
+    play: (c, api, t) => { api.attack(t, sv(10,c)); api.selfDamage(3); },
+  },
+  scarletwitch: {
+    char:'scarletwitch', title:'The Crimson Hex', type:'skill', cost:1, target:'enemy',
+    text: c => `Apply <b>${Math.max(2, Math.round(sv(2,c)))}</b> Vulnerable.`,
+    play: (c, api, t) => api.status(t, 'vuln', Math.max(2, Math.round(sv(2,c)))),
+  },
+  cloud: {
+    char:'cloud', title:'The Buster Blade', type:'attack', cost:2, target:'enemy',
+    text: c => `Deal <b>${sv(16,c)}</b> damage.`,
+    play: (c, api, t) => api.attack(t, sv(16,c)),
+  },
+  tifa: {
+    char:'tifa', title:'The Seventh Fist', type:'attack', cost:2, target:'enemy',
+    text: c => `Deal <b>${sv(4,c)}</b> damage 3 times.`,
+    play: (c, api, t) => { for (let i=0;i<3;i++) api.attack(t, sv(4,c)); },
+  },
+  nathan: {
+    char:'nathan', title:'The Fortune Hunter', type:'skill', cost:1, target:'self',
+    text: c => `Draw <b>2</b> cards. Gain <b>${sv(2,c)}</b> Block.`,
+    play: (c, api) => { api.draw(2); api.block(sv(2,c)); },
+  },
+  cadet: {
+    char:'cadet', title:'The Palace Guard', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(4,c)}</b> damage. Gain <b>${sv(3,c)}</b> Block.`,
+    play: (c, api, t) => { api.attack(t, sv(4,c)); api.block(sv(3,c)); },
+  },
+  magnolia: {
+    char:'magnolia', title:'The Blooming Grace', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${Math.max(2, Math.round(sv(3,c)))}</b> Regen.`,
+    play: (c, api) => api.statusSelf('regen', Math.max(2, Math.round(sv(3,c)))),
+  },
+  enforcer: {
+    char:'enforcer', title:'The Iron Warrant', type:'skill', cost:2, target:'self',
+    text: c => `Gain <b>${sv(8,c)}</b> Block and <b>${Math.max(2, Math.round(sv(2,c)))}</b> Thorns.`,
+    play: (c, api) => { api.block(sv(8,c)); api.statusSelf('thorns', Math.max(2, Math.round(sv(2,c)))); },
+  },
+  veil: {
+    char:'veil', title:'The Umbral Shroud', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${sv(8,c)}</b> Block.`,
+    play: (c, api) => api.block(sv(8,c)),
+  },
+  spiderdemon: {
+    char:'spiderdemon', title:'The Hellmouth', type:'attack', cost:3, target:'all',
+    text: c => `Deal <b>${sv(13,c)}</b> damage to ALL enemies.`,
+    play: (c, api) => api.attackAll(sv(13,c)),
+  },
+  tornada: {
+    char:'tornada', title:'The Turning Sky', type:'attack', cost:2, target:'all',
+    text: c => `Deal <b>${sv(8,c)}</b> damage to ALL enemies.`,
+    play: (c, api) => api.attackAll(sv(8,c)),
+  },
+  darkhold: {
+    char:'darkhold', title:'The Book of the Damned', type:'power', cost:1, target:'self', exhausts:true,
+    text: c => `Gain <b>${Math.max(2, Math.round(sv(2,c)))}</b> Strength. Take 2 damage. Exhaust.`,
+    play: (c, api) => { api.statusSelf('strength', Math.max(2, Math.round(sv(2,c)))); api.selfDamage(2); },
+  },
+  silverflash: {
+    char:'silverflash', title:'The Quicksilver Streak', type:'attack', cost:0, target:'enemy',
+    text: c => `Deal <b>${sv(3,c)}</b> damage. Draw 1 card.`,
+    play: (c, api, t) => { api.attack(t, sv(3,c)); api.draw(1); },
+  },
+  ant: {
+    char:'ant', title:'The Tireless Column', type:'attack', cost:1, target:'enemy',
+    text: c => {
+      const bonus = (cb() && cb().playCounts ? (cb().playCounts[c.uid]||0) : 0) * 2;
+      return `Deal <b>${sv(4,c) + bonus}</b> damage. Grows +2 each play this combat.`;
+    },
+    play: (c, api, t) => {
+      const bonus = ((cb().playCounts[c.uid] || 1) - 1) * 2; /* count includes this play */
+      api.attack(t, sv(4,c) + bonus);
+    },
+  },
 };
 
-function makeCard(defId, grade){
-  return { uid: uid(), defId, grade: grade != null ? grade : 5.0 };
+/* draft pool for drops/shops (the Numbered are starter chaff, not drops) */
+const DROP_POOL = ['spider','deadpool','scarletwitch','cloud','tifa','nathan','cadet',
+                   'magnolia','enforcer','veil','spiderdemon','tornada','darkhold','silverflash','ant'];
+
+function makeCard(defId, grade, quirk){
+  const card = { uid: uid(), defId, grade: grade != null ? grade : 5.0, quirk: quirk || null };
+  if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
+  return card;
 }
+function makeDrop(){ return makeCard(pick(DROP_POOL), rollGrade()); }
 function cardDef(c){ return CARDS[c.defId]; }
 function cardName(c){ return CHARS[cardDef(c).char].name; }
-function cardCost(c){ return cardDef(c).cost; }
+function cardCost(c){
+  let cost = cardDef(c).cost;
+  /* Foxed: first play each combat costs 1 more */
+  const combat = cb();
+  if (c.quirk === 'foxed' && combat && combat.playCounts && !combat.playCounts[c.uid]) cost += 1;
+  return cost;
+}
 
 /* ---------------- statuses ---------------- */
 const STATUS_META = {
@@ -471,6 +639,56 @@ const ENEMIES = {
       return { type:'attack', dmg: 9 + e.tier*3, times:1, label:'Warrant of Iron' };
     }
   },
+  m_silverflash: {
+    char:'silverflash', name:'Mirror Silverflash', hp:[14,17],
+    ai(e, turn){
+      return { type:'attack', dmg: 3 + e.tier, times: 3, label:'Quicksilver Flurry' };
+    }
+  },
+  m_tifa: {
+    char:'tifa', name:'Mirror Tifa', hp:[26,30],
+    ai(e, turn){
+      if (turn % 4 === 3) return { type:'block', block: 8, label:'Guard Stance' };
+      return { type:'attack', dmg: 4 + e.tier*2, times: 2, label:'Twin Palms' };
+    }
+  },
+  m_cloud: {
+    char:'cloud', name:'Mirror Cloud', hp:[34,38],
+    ai(e, turn){
+      if (turn % 3 === 0) return { type:'buff', status:'strength', n:2, label:'Limit Charge' };
+      return { type:'attack', dmg: 11 + e.tier*3, times:1, label:'Buster Arc' };
+    }
+  },
+  m_magnolia: {
+    char:'magnolia', name:'Mirror Magnolia', hp:[28,32],
+    ai(e, turn){
+      if (turn % 3 === 1) return { type:'buff', status:'regen', n:3, label:'Night Bloom' };
+      return { type:'attack', dmg: 6 + e.tier*2, times:1, label:'Thorned Kiss' };
+    }
+  },
+  m_darkhold: {
+    char:'darkhold', name:'Mirror Darkhold', hp:[30,36],
+    ai(e, turn){
+      if (turn % 3 === 1) return { type:'debuff', status:'frail', n:2, label:'Withering Verse' };
+      if (turn % 3 === 2) return { type:'debuff', status:'vuln', n:2, label:'Marked Page' };
+      return { type:'attack', dmg: 7 + e.tier*2, times:1, label:'Ink Lash' };
+    }
+  },
+  m_tornada: {
+    char:'tornada', name:'Mirror Tornada', hp:[32,36],
+    ai(e, turn){
+      if (turn % 4 === 2) return { type:'attack_block', dmg: 6 + e.tier*2, block: 6, label:'Eye of the Storm' };
+      return { type:'attack', dmg: 8 + e.tier*2, times:1, label:'Shear Wind' };
+    }
+  },
+  m_spiderdemon: {
+    char:'spiderdemon', name:'Mirror Spiderdemon', hp:[52,60],
+    ai(e, turn){
+      if (turn === 1) return { type:'buff', status:'thorns', n:3, label:'Chitin Bristle' };
+      if (turn % 3 === 0) return { type:'attack', dmg: 5 + e.tier*2, times:3, label:'Leg Barrage' };
+      return { type:'attack', dmg: 12 + e.tier*3, times:1, label:'Hellmaw Bite' };
+    }
+  },
 };
 
 /* ---------------- global state ---------------- */
@@ -497,10 +715,12 @@ function newRunState(){
   };
 }
 
-/* Phase-1 fight ladder (replaced by the procedural map in phase 3) */
+/* Phase-2 fight ladder (replaced by the procedural map in phase 3) */
 const P1_FIGHTS = [
   { name:'Antechamber of Glass', enemies:['m_cadet'] },
-  { name:'Corridor of Echoes',   enemies:['m_spider','m_cadet'] },
+  { name:'Corridor of Echoes',   enemies:['m_spider','m_silverflash'] },
+  { name:'The Servants’ Stair', enemies:['m_tifa','m_cadet'] },
+  { name:'The Reading Alcove',   enemies:['m_darkhold','m_magnolia'] },
   { name:'The Gilded Threshold', enemies:['m_veil','m_enforcer'] },
 ];
 
@@ -527,6 +747,7 @@ function newCombat(enemyIds, title){
     hand: [], draw: shuffle(run.deck.map(c => c)), discard: [], exhaust: [],
     block: 0,
     pStatus: {},
+    playCounts: {},         // card uid -> times played this combat
     pendingCard: null,      // selected card awaiting a target
     busy: false,
     fx: [],                 // canvas effects
@@ -623,12 +844,14 @@ function applyStatus(ent, key, n){
 /* card play API given to card definitions */
 const API = {
   attack: (t, n) => playerAttack(t, n),
+  attackAll: n => { cb().enemies.filter(e => !e.dead).forEach(e => playerAttack(e, n)); },
   block:  n => gainBlock(n),
   draw:   n => { drawCards(n); },
   status: (t, key, n) => { if (t && !t.dead) applyStatus(t, key, n); },
   statusSelf: (key, n) => applyStatus('player', key, n),
   energy: n => { cb().energy += n; },
   heal:   n => { G.run.hp = Math.min(G.run.maxHp, G.run.hp + n); refreshHud(); },
+  selfDamage: n => damagePlayer(n, true),
 };
 
 async function playCard(card, target){
@@ -641,8 +864,16 @@ async function playCard(card, target){
   c.energy -= cost;
   /* remove from hand */
   c.hand = c.hand.filter(x => x.uid !== card.uid);
+  c.playCounts[card.uid] = (c.playCounts[card.uid] || 0) + 1;
   def.play(card, API, target);
-  c.discard.push(card);
+  /* quirk side-effects */
+  if (card.quirk === 'haunted') damagePlayer(1, true);
+  let exhausted = !!def.exhausts;
+  if (!exhausted && card.quirk === 'brittle' && rng() < 0.25){
+    exhausted = true;
+    addFx('text', { x: CANVAS_W*0.5, y: CANVAS_H*0.72, txt:'Brittle — crumbled!', color:'#c9a86a', small:true });
+  }
+  (exhausted ? c.exhaust : c.discard).push(card);
   c.pendingCard = null;
   refreshCombatUI();
   await sleep(160);
@@ -756,20 +987,49 @@ async function endTurn(){
 function winCombat(){
   const run = G.run;
   run.fightIndex++;
+  const resto = 10 + rndi(0, 6) + run.floor * 2;
+  run.restoration += resto;
+  G.combat = null;
+  showRewardScreen(resto);
+}
+
+function afterReward(){
+  const run = G.run;
   if (run.fightIndex >= P1_FIGHTS.length){
-    /* Phase 1 placeholder ending — replaced by full run structure in phase 3 */
+    /* Phase 2 placeholder ending — replaced by full run structure in phase 3 */
     $('#victory-note').innerHTML =
       'You fought through the antechambers of the vault. Deeper floors — the Gardens, the Salons, ' +
       'the King’s Apartments, and the Hall of Mirrors itself — remain sealed for now.<br><br>' +
-      '<span class="small">(Phase 1 build: full descent arrives with the vault map.)</span>';
+      '<span class="small">(Phase 2 build: full descent arrives with the vault map.)</span>';
     showScreen('victory');
-    G.combat = null;
     return;
   }
-  /* brief respite between fights */
-  G.run.hp = Math.min(G.run.maxHp, G.run.hp + 6);
+  G.run.hp = Math.min(G.run.maxHp, G.run.hp + 5);
   startFight(run.fightIndex);
 }
+
+/* --- card reward: three graded slabs pulled from the rubble --- */
+function showRewardScreen(resto){
+  const offers = [makeDrop(), makeDrop(), makeDrop()];
+  $('#reward-resto').innerHTML = `The shattered frames yield <b>✦ ${resto}</b> Restoration.` +
+    `  <span class="small">(You hold ✦ ${G.run.restoration}.)</span>`;
+  const box = $('#reward-cards');
+  box.innerHTML = '';
+  offers.forEach(card => {
+    const el = cardEl(card);
+    el.classList.add('reward-card');
+    el.addEventListener('click', () => {
+      G.run.deck.push(card);
+      afterReward();
+    });
+    box.appendChild(el);
+  });
+  showScreen('reward');
+}
+$('#btn-reward-skip').addEventListener('click', () => {
+  G.run.restoration += 6;
+  afterReward();
+});
 
 function loseCombat(){
   const c = cb();
@@ -1160,19 +1420,21 @@ function cardEl(card, mini){
   const ch = CHARS[def.char];
   const tier = gradeTier(card.grade);
   const el = document.createElement('div');
-  el.className = `card t-${def.type} g-${tier}` + (mini ? ' mini' : '');
+  const quirk = card.quirk ? QUIRKS[card.quirk] : null;
+  el.className = `card t-${def.type} g-${tier}` + (quirk ? ' qualified' : '') + (mini ? ' mini' : '');
   el.dataset.uid = card.uid;
   el.innerHTML = `
     <div class="slab">
       <div class="glabel">
         <span class="gnum">${card.grade.toFixed(1)}</span>
-        <span class="gname">${gradeName(card.grade)}<br>FIRST APPEARANCE</span>
+        <span class="gname">${quirk ? 'QUALIFIED — ' + quirk.label.toUpperCase() : gradeName(card.grade)}<br>FIRST APPEARANCE</span>
         <span class="serif">LB·${String(card.uid).padStart(4,'0')}</span>
       </div>
       <div class="inner">
         <div class="art"><canvas width="120" height="86" class="sil"></canvas></div>
         <div class="cname">${ch.name}</div>
         <div class="ctype">${def.title} — ${def.type}</div>
+        ${quirk ? `<div class="quirkline" title="${quirk.desc}">${quirk.label}: ${quirk.desc}</div>` : ''}
         <div class="ctext"><span>${def.text(card)}</span></div>
       </div>
       <div class="wear"></div>
