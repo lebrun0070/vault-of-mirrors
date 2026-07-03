@@ -479,6 +479,7 @@ const CHARS = {
   darkhold:     { name:'Darkhold',      hue:290, sil:'wraith' },
   silverflash:  { name:'Silverflash',   hue:220, sil:'rogue'  },
   ant:          { name:'Ant',           hue:95,  sil:'knight' },
+  zorr:         { name:'Zorr',          hue:18,  sil:'revenant' },
   /* curators — the life-sim six, moonlighting between floors */
   nico:    { name:'Nico',    hue:150, sil:'rogue'  },
   jorge:   { name:'Jorge',   hue:25,  sil:'brute'  },
@@ -541,6 +542,17 @@ function drawSilhouette(ctx, x, y, w, h, char, alpha){
       ctx.quadraticCurveTo(cx - w*0.4, y + h*0.4, cx, y + h*0.32);
       ctx.quadraticCurveTo(cx + w*0.4, y + h*0.4, cx + w*0.34, y + h);
       break;
+    case 'revenant':
+      /* hulking ashen figure, warhammer at rest */
+      ctx.arc(cx - w*0.06, y + h*0.18, headR*1.05, 0, 7);
+      ctx.moveTo(cx - w*0.48, y + h);
+      ctx.quadraticCurveTo(cx - w*0.52, y + h*0.3, cx - w*0.06, y + h*0.27);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.3, cx + w*0.34, y + h);
+      /* hammer haft */
+      ctx.rect(cx + w*0.3, y + h*0.12, w*0.05, h*0.82);
+      /* hammer head */
+      ctx.rect(cx + w*0.18, y + h*0.04, w*0.3, h*0.14);
+      break;
     default: /* knight */
       ctx.arc(cx, y + h*0.21, headR, 0, 7);
       ctx.moveTo(cx - w*0.34, y + h);
@@ -548,6 +560,16 @@ function drawSilhouette(ctx, x, y, w, h, char, alpha){
       ctx.quadraticCurveTo(cx + w*0.4, y + h*0.38, cx + w*0.34, y + h);
   }
   ctx.fill();
+  /* ashen cracks on the revenant */
+  if (char.sil === 'revenant'){
+    ctx.strokeStyle = `hsla(${hue},70%,75%,.55)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - w*0.2, y + h*0.42); ctx.lineTo(cx - w*0.08, y + h*0.55); ctx.lineTo(cx - w*0.18, y + h*0.72);
+    ctx.moveTo(cx + w*0.1, y + h*0.38); ctx.lineTo(cx + w*0.02, y + h*0.52);
+    ctx.moveTo(cx - w*0.04, y + h*0.16); ctx.lineTo(cx - w*0.1, y + h*0.22);
+    ctx.stroke();
+  }
   /* eye glow */
   ctx.fillStyle = `hsla(${hue},90%,80%,.9)`;
   ctx.beginPath();
@@ -821,7 +843,28 @@ const ENEMIES = {
       return { type:'attack', dmg: 12 + e.tier*3, times:1, label:'Hellmaw Bite' };
     }
   },
+  /* Zorr — the corrupted revenant. Meets you at every floor's seal,
+     stronger each time, until the true confrontation in the Hall. */
+  zorr: {
+    char:'zorr', name:'Zorr', hp:[58,64], boss:true,
+    ai(e, turn){
+      const T = e.tier;
+      const enraged = e.hp < e.maxHp * 0.5;
+      if (turn === 1) return { type:'buff', status:'strength', n: 1 + Math.floor(T/2), label:'Ash Mantle' };
+      if (enraged){
+        if (turn % 3 === 0) return { type:'attack', dmg: 6 + T*2, times: 3, label:'Hammerfall Cascade' };
+        return { type:'attack', dmg: 15 + T*4, times: 1, label:'Sundering Blow' };
+      }
+      const cycle = turn % 4;
+      if (cycle === 2) return { type:'debuff', status: (turn % 8 < 4 ? 'weak' : 'frail'), n: 2, label:'Breath of Ash' };
+      if (cycle === 3) return { type:'attack_block', dmg: 8 + T*3, block: 8 + T*2, label:'Corroded Guard' };
+      return { type:'attack', dmg: 11 + T*3, times: 1, label:'Warhammer Arc' };
+    }
+  },
 };
+
+/* Zorr's names as he wakes, floor by floor */
+const ZORR_TITLES = ['An Echo of Zorr','Zorr, Half-Woken','Zorr, Risen','Zorr, Unbound','Zorr, First of the Sealed'];
 
 /* ---------------- global state ---------------- */
 const G = {
@@ -877,13 +920,13 @@ const FLOORS = [
     encounters:[['m_veil','m_darkhold','m_silverflash'],['m_tornada','m_tornada'],['m_cloud','m_darkhold'],['m_spiderdemon','m_veil']],
     elites:[['m_spiderdemon','m_spiderdemon'],['m_cloud','m_cloud','m_darkhold']] },
 ];
-/* placeholder floor bosses (Zorr arrives in phase 5) */
+/* Zorr seals every floor — alone at first, with corrupted escorts as he wakes */
 const FLOOR_BOSSES = [
-  { name:'Warden of the Parterres', enemies:['m_enforcer','m_enforcer'] },
-  { name:'Warden of the Doves',     enemies:['m_cloud','m_magnolia'] },
-  { name:'Warden of the Trophies',  enemies:['m_spiderdemon'] },
-  { name:'Warden of the Bedchamber',enemies:['m_spiderdemon','m_darkhold'] },
-  { name:'Warden of the Glass',     enemies:['m_spiderdemon','m_cloud'] },
+  { enemies:['zorr'] },
+  { enemies:['zorr'] },
+  { enemies:['zorr','m_veil'] },
+  { enemies:['zorr','m_darkhold'] },
+  { enemies:['zorr'] },     // the true confrontation — see hp boost in newCombat
 ];
 
 /* ---------------- procedural node map ---------------- */
@@ -951,7 +994,7 @@ function genFloorMap(floorIdx){
   nodes.forEach(n => {
     if (n.type === 'combat') { n.fight = pick(F.encounters); n.room = pick(F.rooms); }
     if (n.type === 'elite')  { n.fight = pick(F.elites);     n.room = pick(F.rooms); }
-    if (n.type === 'boss')   { n.fight = FLOOR_BOSSES[floorIdx].enemies; n.room = FLOOR_BOSSES[floorIdx].name; }
+    if (n.type === 'boss')   { n.fight = FLOOR_BOSSES[floorIdx].enemies; n.room = ZORR_TITLES[floorIdx]; }
   });
   return { nodes, rows: R+1 };
 }
@@ -1026,10 +1069,15 @@ function newCombat(enemyIds, title){
   const enemies = enemyIds.map((id, i) => {
     const d = ENEMIES[id];
     const tier = run.floor - 1;
-    const hp = Math.round(rndi(d.hp[0], d.hp[1]) * (1 + 0.35*tier));
+    let hp = Math.round(rndi(d.hp[0], d.hp[1]) * (1 + 0.35*tier));
+    let name = d.name;
+    if (id === 'zorr'){
+      name = ZORR_TITLES[run.floor - 1];
+      if (run.floor === 5) hp = Math.round(hp * 1.35);   // the true confrontation
+    }
     return {
-      id: uid(), defId: id, char: CHARS[d.char], name: d.name,
-      hp, maxHp: hp, block: 0, tier,
+      id: uid(), defId: id, char: CHARS[d.char], name,
+      hp, maxHp: hp, block: 0, tier, isBoss: !!d.boss,
       status: {}, nextMove: null, slot: i,
       shakeT: 0, flashT: 0, dead: false, deathT: 0,
     };
@@ -1455,7 +1503,7 @@ function drawVaultBackdrop(time){
 }
 
 function drawEnemy(e, time, targetable){
-  const w = 170, h = 240;
+  const w = e.isBoss ? 214 : 170, h = e.isBoss ? 300 : 240;
   let x = e.cx - w/2, y = e.cy - h/2;
   if (e.shakeT > 0){ x += Math.sin(e.shakeT*40)*7*e.shakeT; }
   const dead = e.dead;
@@ -1465,10 +1513,21 @@ function drawEnemy(e, time, targetable){
   ctx.save();
   ctx.globalAlpha = da;
 
-  /* frame */
+  /* frame — bosses get a holofoil border */
   ctx.fillStyle = '#0a0705';
-  ctx.strokeStyle = targetable ? `rgba(240,217,140,${0.7+0.3*Math.sin(time*6)})` : 'rgba(160,128,52,.85)';
-  ctx.lineWidth = targetable ? 5 : 4;
+  if (e.isBoss && !targetable){
+    ctx.strokeStyle = `hsl(${(time*70) % 360}, 62%, 58%)`;
+    ctx.shadowColor = `hsl(${(time*70) % 360}, 70%, 55%)`;
+    ctx.shadowBlur = 14;
+  } else {
+    ctx.strokeStyle = targetable ? `rgba(240,217,140,${0.7+0.3*Math.sin(time*6)})` : 'rgba(160,128,52,.85)';
+  }
+  /* enrage: the glass runs hot */
+  if (e.isBoss && !e.dead && e.hp < e.maxHp * 0.5){
+    ctx.shadowColor = 'rgba(220,70,40,.9)';
+    ctx.shadowBlur = 22 + 8*Math.sin(time*5);
+  }
+  ctx.lineWidth = targetable ? 5 : (e.isBoss ? 5 : 4);
   const arc = 44;
   ctx.beginPath();
   ctx.moveTo(x, y+h);
@@ -1477,6 +1536,7 @@ function drawEnemy(e, time, targetable){
   ctx.lineTo(x+w, y+h);
   ctx.closePath();
   ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
 
   /* inner glass */
   ctx.save();
@@ -1956,6 +2016,9 @@ function startFight(node){
   $('#ct-name').textContent = node.room + (node.type === 'elite' ? ' — ELITE' : '');
   showScreen('combat');
   startPlayerTurn();
+  if (node.type === 'boss'){
+    setTimeout(() => banner(G.run.floor === 5 ? 'THE FIRST OF THE SEALED' : 'ZORR STIRS BEHIND THE GLASS'), 1000);
+  }
 }
 
 /* --- events & stories --- */
@@ -2224,7 +2287,8 @@ function floorTransition(){
     /* the vault is cleared */
     const mins = Math.floor((Date.now() - run.startedAt)/60000);
     $('#victory-note').innerHTML =
-      'The last warden shatters, and every frame in the Hall of Mirrors goes quiet at once.<br>' +
+      'Zorr’s warhammer falls from fingers of ash, and every frame in the Hall of Mirrors ' +
+      'goes quiet at once. The First of the Sealed is sealed no more — he is free, and so are you.<br>' +
       'The vault is yours, as it was always meant to be.<br><br>' +
       `<span class="small">Cleared in ${mins} min — ${run.deck.length} First Appearances in the ledger.</span>`;
     showScreen('victory');
@@ -2239,7 +2303,8 @@ function floorTransition(){
   const F = FLOORS[run.floor - 1];
   $('#trans-title').textContent = 'THE STAIR WINDS DOWN';
   $('#trans-body').innerHTML =
-    `The warden’s frame collapses into sand. Behind it: a stair, and colder air.<br>` +
+    `Zorr’s frame cracks and gutters out — but the ash does not settle. Somewhere below, ` +
+    `you hear the warhammer dragging itself down the stair, growing heavier.<br>` +
     `<b style="color:var(--gold-hi)">${F.name}</b> waits below.<br><br>` +
     (report.length ? '<span class="small">' + report.join('<br>') + '</span><br>' : '') +
     `<span class="small">You bind your wounds (+${healed} HP).</span>`;
