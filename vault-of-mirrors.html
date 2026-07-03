@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vault of Mirrors — A Le Brun Legacy</title>
+<style>
+:root{
+  --gold:#c9a227; --gold-hi:#f0d98c; --gold-dim:#8a6d1d;
+  --ink:#0d0a08; --panel:#171210; --panel2:#1f1815;
+  --parch:#e8dcc0; --parch-dim:#b3a684;
+  --blood:#b03a2e; --arcane:#7d5ba6; --verdant:#5b8c5a;
+  --atk:#8c3b31; --skl:#31608c; --pwr:#7d5ba6;
+}
+*{box-sizing:border-box; margin:0; padding:0; user-select:none; -webkit-user-select:none}
+html,body{height:100%; background:#050403; color:var(--parch);
+  font-family:Georgia,'Times New Roman',serif; overflow:hidden}
+#app{position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center}
+#stage{position:relative; width:min(100vw,177.7vh); height:min(56.25vw,100vh); overflow:hidden;
+  background:radial-gradient(ellipse at 50% 30%, #16100c 0%, #080605 70%)}
+.screen{position:absolute; inset:0; display:none}
+.screen.on{display:block}
+
+/* ---------- shared chrome ---------- */
+h1,h2,h3{font-weight:normal; letter-spacing:.08em}
+.goldrule{width:220px; height:1px; margin:14px auto;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+button.gbtn{cursor:pointer; font-family:inherit; color:var(--parch);
+  background:linear-gradient(180deg,#2a211a,#16110d); border:1px solid var(--gold-dim);
+  padding:10px 26px; font-size:17px; letter-spacing:.12em; border-radius:3px;
+  transition:all .15s}
+button.gbtn:hover{border-color:var(--gold-hi); color:var(--gold-hi);
+  box-shadow:0 0 14px rgba(201,162,39,.25); text-shadow:0 0 8px rgba(240,217,140,.5)}
+button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
+.small{font-size:13px; color:var(--parch-dim)}
+
+/* ---------- title ---------- */
+#screen-title{display:none; text-align:center}
+#screen-title.on{display:flex; flex-direction:column; align-items:center; justify-content:center}
+#screen-title h1{font-size:clamp(30px,5.5vmin,58px); color:var(--gold-hi);
+  text-shadow:0 0 30px rgba(201,162,39,.35), 0 2px 0 #000}
+#screen-title .sub{font-style:italic; color:var(--parch-dim); margin-top:6px; font-size:clamp(13px,1.8vmin,18px)}
+#screen-title .premise{max-width:560px; margin:20px auto; line-height:1.6;
+  color:var(--parch-dim); font-size:clamp(12px,1.6vmin,15px); font-style:italic}
+#title-candles{position:absolute; inset:0; z-index:-1}
+
+/* ---------- combat ---------- */
+#screen-combat{background:#000}
+#combat-canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+#combat-ui{position:absolute; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:flex-end}
+#combat-ui > *{pointer-events:auto}
+
+#hud{position:absolute; left:1.5%; bottom:30%; width:230px; pointer-events:auto}
+#hud .plate{background:linear-gradient(180deg,rgba(30,23,17,.92),rgba(15,11,8,.92));
+  border:1px solid var(--gold-dim); border-radius:4px; padding:10px 12px;
+  box-shadow:0 4px 18px rgba(0,0,0,.6)}
+#hud .pname{color:var(--gold-hi); font-size:15px; letter-spacing:.06em; margin-bottom:6px}
+.bar{position:relative; height:16px; background:#241511; border:1px solid #000; border-radius:2px; overflow:hidden}
+.bar .fill{position:absolute; inset:0; transform-origin:left;
+  background:linear-gradient(180deg,#a8352a,#6e1f16); transition:transform .3s}
+.bar .txt{position:absolute; inset:0; text-align:center; font-size:11px; line-height:16px;
+  color:#f5e9d0; text-shadow:0 1px 2px #000}
+#hud .row{display:flex; align-items:center; gap:8px; margin-top:8px}
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:13px; color:var(--parch);
+  background:rgba(0,0,0,.4); border:1px solid #3a2e20; border-radius:3px; padding:2px 8px}
+.chip b{color:var(--gold-hi)}
+#p-block-chip{display:none}
+#p-block-chip.show{display:inline-flex}
+#p-status{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
+
+#energy-orb{position:absolute; left:1.5%; bottom:6%;
+  width:84px; height:84px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #f6e7b0, #c9a227 45%, #6e5410 80%, #3a2c08);
+  border:2px solid var(--gold-dim); box-shadow:0 0 24px rgba(201,162,39,.45), inset 0 0 18px rgba(0,0,0,.4);
+  display:flex; align-items:center; justify-content:center; flex-direction:column}
+#energy-orb .n{font-size:30px; color:#231a05; font-weight:bold; text-shadow:0 1px 0 rgba(255,255,255,.35)}
+#energy-orb .lbl{font-size:9px; letter-spacing:.14em; color:#3d2f0b}
+#energy-orb.spent{filter:grayscale(.7) brightness(.7)}
+
+#end-turn{position:absolute; right:1.5%; bottom:7%; padding:12px 30px; font-size:16px}
+#piles{position:absolute; right:1.5%; bottom:19%; display:flex; gap:8px}
+.pile{font-size:12px; color:var(--parch-dim); background:rgba(0,0,0,.5);
+  border:1px solid #33291c; border-radius:3px; padding:4px 10px; cursor:pointer}
+.pile b{color:var(--parch); font-size:14px}
+.pile:hover{border-color:var(--gold-dim); color:var(--parch)}
+
+/* hand */
+#hand{position:relative; height:27%; min-height:200px; display:flex; align-items:flex-end;
+  justify-content:center; padding-bottom:10px; z-index:5}
+
+/* ---------- card ---------- */
+.card{position:relative; width:132px; height:186px; margin:0 -14px; flex-shrink:0;
+  transition:transform .13s, margin .13s; transform-origin:bottom center; cursor:pointer; z-index:1}
+.card:hover{transform:translateY(-46px) scale(1.22); z-index:50; margin:0 26px}
+.card.selected{transform:translateY(-54px) scale(1.24); z-index:60; margin:0 30px}
+.card.selected .slab{box-shadow:0 0 0 2px var(--gold-hi), 0 0 26px rgba(240,217,140,.5)}
+.card.unaffordable{filter:grayscale(.65) brightness(.75)}
+.slab{position:absolute; inset:0; border-radius:8px; overflow:hidden;
+  background:linear-gradient(160deg,#efe9df,#cfc7b6 60%,#b8ae99);
+  border:1px solid #6e6552; box-shadow:0 6px 16px rgba(0,0,0,.65)}
+.slab .inner{position:absolute; inset:5px; border-radius:5px; overflow:hidden;
+  background:#151009; border:1px solid #000; display:flex; flex-direction:column}
+.card .glabel{position:absolute; top:0; left:0; right:0; height:26px; z-index:4;
+  display:flex; align-items:center; padding:0 7px; gap:6px;
+  background:linear-gradient(180deg,#f4efe4,#ddd5c2); border-bottom:1px solid #8c8168}
+.card .glabel .gnum{font-size:13px; font-weight:bold; color:#1c1812}
+.card .glabel .gname{font-size:7.5px; letter-spacing:.05em; color:#5c5442; text-transform:uppercase; line-height:1.05}
+.card .glabel .serif{margin-left:auto; font-size:7px; color:#8a7f63; letter-spacing:.08em}
+.card .art{position:relative; height:46%; margin-top:26px; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%, #241a12, #0c0806 75%)}
+.card .art .sil{position:absolute; inset:0}
+.card .cname{padding:3px 6px 0; text-align:center; font-size:12.5px; color:var(--gold-hi);
+  letter-spacing:.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.card .ctype{text-align:center; font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:#8d8168; padding-top:1px}
+.card .ctext{flex:1; padding:4px 8px; font-size:10.5px; line-height:1.3; text-align:center; color:#d8cdb2;
+  display:flex; align-items:center; justify-content:center}
+.card .ctext > span{display:inline}
+.card .ctext b{color:#f0d98c}
+.card .cost{position:absolute; top:20px; left:-2px; z-index:6; width:30px; height:30px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #f6e7b0, #c9a227 50%, #6e5410);
+  border:1px solid #4d3b0c; display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:bold; color:#231a05; box-shadow:0 2px 6px rgba(0,0,0,.6)}
+.card.t-attack .inner{background:linear-gradient(180deg,#1c100d,#120a08)}
+.card.t-attack .ctype{color:#b06a5c}
+.card.t-skill .inner{background:linear-gradient(180deg,#0d141c,#080d12)}
+.card.t-skill .ctype{color:#6c8cad}
+.card.t-power .inner{background:linear-gradient(180deg,#150d1c,#0c0812)}
+.card.t-power .ctype{color:#9a7cc0}
+
+/* wear overlays by grade tier */
+.card .wear{position:absolute; inset:0; z-index:5; pointer-events:none; border-radius:8px}
+.card.g-low .wear{background:
+  linear-gradient(23deg, transparent 42%, rgba(120,100,70,.28) 43%, transparent 44%),
+  linear-gradient(-67deg, transparent 60%, rgba(120,100,70,.22) 61%, transparent 62.5%),
+  linear-gradient(101deg, transparent 25%, rgba(90,75,55,.25) 26%, transparent 27%),
+  radial-gradient(ellipse at 8% 95%, rgba(70,55,35,.5), transparent 30%),
+  radial-gradient(ellipse at 94% 6%, rgba(70,55,35,.45), transparent 26%)}
+.card.g-low .slab{background:linear-gradient(160deg,#d9d0c0,#b3a890 60%,#96876f)}
+.card.g-low .glabel{background:linear-gradient(180deg,#ddd3bd,#c3b79c)}
+.card.g-mid .wear{background:
+  linear-gradient(31deg, transparent 55%, rgba(120,100,70,.13) 55.6%, transparent 56.2%),
+  radial-gradient(ellipse at 4% 97%, rgba(70,55,35,.22), transparent 18%)}
+.card.g-high .wear{background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.16) 42%, transparent 54%)}
+.card.g-high .slab{box-shadow:0 6px 16px rgba(0,0,0,.65), 0 0 12px rgba(240,217,140,.28)}
+.card.g-high .glabel{background:linear-gradient(180deg,#f7ecc4,#e4d089)}
+
+/* ---------- banners / overlays ---------- */
+#turn-banner{position:absolute; top:38%; left:0; right:0; text-align:center; pointer-events:none;
+  font-size:34px; letter-spacing:.28em; color:var(--gold-hi); opacity:0; text-transform:uppercase;
+  text-shadow:0 0 24px rgba(201,162,39,.6), 0 2px 2px #000; transition:opacity .3s}
+#combat-title{position:absolute; top:2.5%; left:0; right:0; text-align:center; pointer-events:none}
+#combat-title .fl{font-size:12px; letter-spacing:.3em; color:var(--parch-dim); text-transform:uppercase}
+#combat-title .nm{font-size:20px; letter-spacing:.12em; color:var(--gold); margin-top:2px}
+
+.overlay{position:absolute; inset:0; background:rgba(4,3,2,.82); z-index:80;
+  display:none; align-items:center; justify-content:center; flex-direction:column}
+.overlay.on{display:flex}
+.overlay .panel{background:linear-gradient(180deg,#1e1712,#120d09); border:1px solid var(--gold-dim);
+  border-radius:6px; padding:26px 34px; max-width:70%; max-height:80%; overflow:auto; text-align:center;
+  box-shadow:0 10px 50px rgba(0,0,0,.8)}
+.overlay h2{color:var(--gold-hi); font-size:26px; letter-spacing:.1em; margin-bottom:8px}
+.pile-list{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:14px 0; max-width:820px}
+.pile-list .mini{width:110px; height:155px; position:relative; transform:scale(1); margin:0}
+.pile-list .mini:hover{transform:scale(1.12); z-index:5}
+
+/* ---------- game over ---------- */
+#screen-gameover, #screen-victory{text-align:center}
+#screen-gameover.on, #screen-victory.on{display:flex; flex-direction:column; align-items:center; justify-content:center}
+#screen-gameover h1{font-size:44px; color:#a8352a; letter-spacing:.14em; text-shadow:0 0 30px rgba(168,53,42,.4)}
+#screen-victory h1{font-size:44px; color:var(--gold-hi); letter-spacing:.14em; text-shadow:0 0 30px rgba(201,162,39,.5)}
+.deathnote{color:var(--parch-dim); font-style:italic; margin:16px 0 24px; max-width:520px; line-height:1.6}
+
+/* status icons */
+.sticon{display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:1px 6px;
+  border-radius:3px; background:rgba(0,0,0,.55); border:1px solid #3a2e20}
+.sticon.buff{color:#a9d08e; border-color:#3e5c33}
+.sticon.debuff{color:#d08e8e; border-color:#5c3333}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+
+  <!-- TITLE -->
+  <div class="screen" id="screen-title">
+    <canvas id="title-candles"></canvas>
+    <div class="small" style="letter-spacing:.35em; color:var(--gold-dim)">A LE BRUN LEGACY</div>
+    <h1>VAULT OF MIRRORS</h1>
+    <div class="sub">Beneath the Hall of Mirrors, the First Appearances wait in their frames.</div>
+    <div class="goldrule"></div>
+    <div class="premise">Charles Le Brun did not merely paint the ceiling of Versailles. He bound guardians
+      into enchanted mirror-frames — each sealed at its First Appearance — to protect France.
+      You have inherited the vault key. Descend.</div>
+    <div style="display:flex; gap:14px; margin-top:18px">
+      <button class="gbtn" id="btn-newrun">DESCEND INTO THE VAULT</button>
+    </div>
+    <div class="small" style="margin-top:26px; opacity:.7" id="title-foot">The vault remembers nothing yet.</div>
+  </div>
+
+  <!-- COMBAT -->
+  <div class="screen" id="screen-combat">
+    <canvas id="combat-canvas"></canvas>
+    <div id="combat-title"><div class="fl" id="ct-floor"></div><div class="nm" id="ct-name"></div></div>
+    <div id="turn-banner"></div>
+    <div id="combat-ui">
+      <div id="hud">
+        <div class="plate">
+          <div class="pname" id="p-name">The Descendant</div>
+          <div class="bar"><div class="fill" id="p-hp-fill"></div><div class="txt" id="p-hp-txt"></div></div>
+          <div class="row">
+            <span class="chip" id="p-block-chip">🛡 <b id="p-block">0</b></span>
+            <span class="chip" title="Restoration">✦ <b id="p-resto">0</b></span>
+          </div>
+          <div id="p-status"></div>
+        </div>
+      </div>
+      <div id="energy-orb"><div class="n" id="energy-n">3</div><div class="lbl">ÉNERGIE</div></div>
+      <div id="piles">
+        <div class="pile" id="pile-draw">Draw <b id="n-draw">0</b></div>
+        <div class="pile" id="pile-discard">Discard <b id="n-discard">0</b></div>
+        <div class="pile" id="pile-exhaust" style="display:none">Exhaust <b id="n-exhaust">0</b></div>
+      </div>
+      <button class="gbtn" id="end-turn">END TURN</button>
+      <div id="hand"></div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="screen" id="screen-gameover">
+    <h1>SHATTERED</h1>
+    <div class="goldrule"></div>
+    <div class="deathnote" id="death-note"></div>
+    <button class="gbtn" id="btn-go-title">RETURN TO THE SURFACE</button>
+  </div>
+
+  <!-- VICTORY (placeholder until full run exists) -->
+  <div class="screen" id="screen-victory">
+    <h1>THE VAULT YIELDS</h1>
+    <div class="goldrule"></div>
+    <div class="deathnote" id="victory-note"></div>
+    <button class="gbtn" id="btn-vic-title">RETURN TO THE SURFACE</button>
+  </div>
+
+  <!-- generic overlay (pile viewer etc.) -->
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <h2 id="ov-title"></h2>
+      <div id="ov-body"></div>
+      <button class="gbtn" id="ov-close">CLOSE</button>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   VAULT OF MIRRORS — A Le Brun Legacy
+   Single-file roguelike deckbuilder.
+   Phase 1: core combat engine + the five basic guardians (One–Five).
+   ===================================================================== */
+
+/* ---------------- utilities ---------------- */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let _uid = 1; const uid = () => _uid++;
+
+/* seeded rng (mulberry32) — one stream per run for reproducibility */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296; } }
+let rng = mulberry32(Date.now() & 0xffffffff);
+const rnd   = (a,b) => a + rng()*(b-a);
+const rndi  = (a,b) => Math.floor(rnd(a, b+1));
+const pick  = arr => arr[Math.floor(rng()*arr.length)];
+const shuffle = arr => { const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+/* storage wrapper: localStorage when available, in-memory fallback */
+const Store = (() => {
+  let mem = {};
+  let ok = false;
+  try { localStorage.setItem('__vom_t','1'); localStorage.removeItem('__vom_t'); ok = true; } catch(e){}
+  return {
+    get(k, d){ try { const v = ok ? localStorage.getItem(k) : mem[k]; return v==null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set(k, v){ try { const s = JSON.stringify(v); if (ok) localStorage.setItem(k, s); else mem[k]=s; } catch(e){} }
+  };
+})();
+
+/* ---------------- grading ---------------- */
+const GRADE_STEPS = [2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.2,9.4,9.6,9.8];
+function gradeName(g){
+  if (g >= 9.8) return 'GEM MINT';
+  if (g >= 9.4) return 'NEAR MINT+';
+  if (g >= 9.0) return 'NEAR MINT';
+  if (g >= 8.0) return 'VERY FINE';
+  if (g >= 7.0) return 'FINE / VF';
+  if (g >= 6.0) return 'FINE';
+  if (g >= 5.0) return 'VG / FINE';
+  if (g >= 4.0) return 'VERY GOOD';
+  if (g >= 3.0) return 'GOOD';
+  return 'FAIR';
+}
+function gradeTier(g){ return g >= 8.0 ? 'high' : (g >= 4.0 ? 'mid' : 'low'); }
+/* power multiplier: grade 5.0 ≈ baseline, 9.8 hits ~1.24x, 2.5 ~0.95x */
+function gradeMult(g){ return 0.85 + 0.04 * g; }
+
+/* ---------------- character registry ---------------- */
+/* Portraits: drop image files into assets/portraits/<id>.png and they will be
+   used automatically; otherwise a procedural silhouette placeholder renders. */
+const CHARS = {
+  one:   { name:'One',   hue:44,  sil:'knight' },
+  two:   { name:'Two',   hue:205, sil:'shield' },
+  three: { name:'Three', hue:8,   sil:'rogue'  },
+  four:  { name:'Four',  hue:130, sil:'shield' },
+  five:  { name:'Five',  hue:275, sil:'brute'  },
+  /* enemy-only for now; join the card pool in later phases */
+  cadet:      { name:'Cadet',      hue:210, sil:'knight' },
+  spider:     { name:'Spider',     hue:355, sil:'rogue'  },
+  veil:       { name:'Veil',       hue:265, sil:'wraith' },
+  enforcer:   { name:'Enforcer',   hue:30,  sil:'brute'  },
+};
+const portraitCache = {};   // id -> Image or 'missing'
+function getPortrait(id){
+  if (portraitCache[id]) return portraitCache[id];
+  const img = new Image();
+  img.onload  = () => { portraitCache[id] = img; };
+  img.onerror = () => { portraitCache[id] = 'missing'; };
+  img.src = 'assets/portraits/' + id + '.png';
+  portraitCache[id] = 'missing'; // until it loads
+  return 'missing';
+}
+
+/* procedural silhouette painter (placeholder art) */
+function drawSilhouette(ctx, x, y, w, h, char, alpha){
+  const hue = char.hue;
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  const g = ctx.createLinearGradient(x, y, x, y+h);
+  g.addColorStop(0, `hsl(${hue},46%,52%)`);
+  g.addColorStop(1, `hsl(${hue},40%,22%)`);
+  ctx.fillStyle = g;
+  const cx = x + w/2;
+  const headR = w * 0.16;
+  ctx.beginPath();
+  switch(char.sil){
+    case 'brute':
+      ctx.arc(cx, y + h*0.24, headR*1.15, 0, 7);
+      ctx.moveTo(cx - w*0.44, y + h);
+      ctx.quadraticCurveTo(cx - w*0.48, y + h*0.36, cx, y + h*0.34);
+      ctx.quadraticCurveTo(cx + w*0.48, y + h*0.36, cx + w*0.44, y + h);
+      break;
+    case 'wraith':
+      ctx.arc(cx, y + h*0.22, headR*0.9, 0, 7);
+      ctx.moveTo(cx - w*0.3, y + h);
+      ctx.quadraticCurveTo(cx - w*0.42, y + h*0.4, cx, y + h*0.32);
+      ctx.quadraticCurveTo(cx + w*0.42, y + h*0.4, cx + w*0.34, y + h*0.7);
+      ctx.quadraticCurveTo(cx + w*0.2, y + h*0.85, cx + w*0.3, y + h);
+      break;
+    case 'rogue':
+      ctx.arc(cx + w*0.04, y + h*0.22, headR*0.85, 0, 7);
+      ctx.moveTo(cx - w*0.3, y + h);
+      ctx.quadraticCurveTo(cx - w*0.36, y + h*0.42, cx - w*0.05, y + h*0.34);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.42, cx + w*0.26, y + h);
+      break;
+    case 'shield':
+      ctx.arc(cx, y + h*0.2, headR*0.95, 0, 7);
+      ctx.moveTo(cx - w*0.38, y + h*0.42);
+      ctx.lineTo(cx + w*0.38, y + h*0.42);
+      ctx.lineTo(cx + w*0.3, y + h);
+      ctx.lineTo(cx - w*0.3, y + h);
+      ctx.closePath();
+      ctx.moveTo(cx - w*0.34, y + h);
+      ctx.quadraticCurveTo(cx - w*0.4, y + h*0.4, cx, y + h*0.32);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.4, cx + w*0.34, y + h);
+      break;
+    default: /* knight */
+      ctx.arc(cx, y + h*0.21, headR, 0, 7);
+      ctx.moveTo(cx - w*0.34, y + h);
+      ctx.quadraticCurveTo(cx - w*0.4, y + h*0.38, cx, y + h*0.33);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.38, cx + w*0.34, y + h);
+  }
+  ctx.fill();
+  /* eye glow */
+  ctx.fillStyle = `hsla(${hue},90%,80%,.9)`;
+  ctx.beginPath();
+  ctx.arc(cx - headR*0.36, y + h*0.21, 1.6, 0, 7);
+  ctx.arc(cx + headR*0.36, y + h*0.21, 1.6, 0, 7);
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ---------------- card definitions ---------------- */
+/* v(base, card) — grade-scaled value; text() must mirror play() */
+function sv(base, card){ return Math.max(1, Math.round(base * gradeMult(card.grade))); }
+
+const CARDS = {
+  one: {
+    char:'one', title:'First of the Numbered', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(6,c)}</b> damage.`,
+    play: (c, api, t) => api.attack(t, sv(6,c)),
+  },
+  two: {
+    char:'two', title:'Second of the Numbered', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${sv(6,c)}</b> Block.`,
+    play: (c, api) => api.block(sv(6,c)),
+  },
+  three: {
+    char:'three', title:'Third of the Numbered', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(3,c)}</b> damage twice.`,
+    play: (c, api, t) => { api.attack(t, sv(3,c)); api.attack(t, sv(3,c)); },
+  },
+  four: {
+    char:'four', title:'Fourth of the Numbered', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${sv(4,c)}</b> Block. Draw 1 card.`,
+    play: (c, api) => { api.block(sv(4,c)); api.draw(1); },
+  },
+  five: {
+    char:'five', title:'Fifth of the Numbered', type:'attack', cost:2, target:'enemy',
+    text: c => `Deal <b>${sv(11,c)}</b> damage. Apply 1 <b>Weak</b>.`,
+    play: (c, api, t) => { api.attack(t, sv(11,c)); api.status(t, 'weak', 1); },
+  },
+};
+
+function makeCard(defId, grade){
+  return { uid: uid(), defId, grade: grade != null ? grade : 5.0 };
+}
+function cardDef(c){ return CARDS[c.defId]; }
+function cardName(c){ return CHARS[cardDef(c).char].name; }
+function cardCost(c){ return cardDef(c).cost; }
+
+/* ---------------- statuses ---------------- */
+const STATUS_META = {
+  strength: { label:'Str',   icon:'⚔',  buff:true,  desc:'Deals +N damage per hit.' },
+  regen:    { label:'Regen', icon:'❦',  buff:true,  desc:'Heals N at turn start, then reduces by 1.' },
+  thorns:   { label:'Thorns',icon:'❈',  buff:true,  desc:'Attackers take N damage.' },
+  weak:     { label:'Weak',  icon:'↓',  buff:false, desc:'Deals 25% less attack damage. N turns.' },
+  vuln:     { label:'Vuln',  icon:'◎',  buff:false, desc:'Takes 50% more attack damage. N turns.' },
+  frail:    { label:'Frail', icon:'✂',  buff:false, desc:'Gains 25% less Block. N turns.' },
+};
+
+/* ---------------- enemy definitions ---------------- */
+/* Enemies are mirror-corrupted duplicates of vault guardians. */
+const ENEMIES = {
+  m_cadet: {
+    char:'cadet', name:'Mirror Cadet', hp:[24,28],
+    ai(e, turn){
+      if (turn % 3 === 2) return { type:'block', block: 6, label:'Parade Guard' };
+      return { type:'attack', dmg: 6 + e.tier*2, times:1, label:'Drill Thrust' };
+    }
+  },
+  m_spider: {
+    char:'spider', name:'Mirror Spider', hp:[20,24],
+    ai(e, turn){
+      if (turn % 4 === 1) return { type:'debuff', status:'weak', n:2, label:'Silver Web' };
+      return { type:'attack', dmg: 4 + e.tier*2, times:2, label:'Twin Fangs' };
+    }
+  },
+  m_veil: {
+    char:'veil', name:'Mirror Veil', hp:[30,34],
+    ai(e, turn){
+      if (turn === 1) return { type:'buff', status:'strength', n:2, label:'Gathering Gloom' };
+      if (turn % 3 === 0) return { type:'attack_block', dmg: 5 + e.tier*2, block: 5, label:'Shroud Lash' };
+      return { type:'attack', dmg: 8 + e.tier*2, times:1, label:'Umbral Cut' };
+    }
+  },
+  m_enforcer: {
+    char:'enforcer', name:'Mirror Enforcer', hp:[38,44],
+    ai(e, turn){
+      if (turn % 3 === 1) return { type:'buff', status:'strength', n:1, label:'Gilded Fury' };
+      return { type:'attack', dmg: 9 + e.tier*3, times:1, label:'Warrant of Iron' };
+    }
+  },
+};
+
+/* ---------------- global state ---------------- */
+const G = {
+  screen: 'title',
+  run: null,       // active run
+  combat: null,    // active combat
+};
+
+function newRunState(){
+  const seed = (Math.random()*0xffffffff)>>>0;
+  rng = mulberry32(seed);
+  const deck = [];
+  ['one','one','two','two','three','three','four','four','five','five']
+    .forEach(id => deck.push(makeCard(id, pick([4.5,5.0,5.5,6.0]))));
+  return {
+    seed,
+    hp: 70, maxHp: 70,
+    restoration: 40,
+    deck,
+    floor: 1,
+    fightIndex: 0,
+    startedAt: Date.now(),
+  };
+}
+
+/* Phase-1 fight ladder (replaced by the procedural map in phase 3) */
+const P1_FIGHTS = [
+  { name:'Antechamber of Glass', enemies:['m_cadet'] },
+  { name:'Corridor of Echoes',   enemies:['m_spider','m_cadet'] },
+  { name:'The Gilded Threshold', enemies:['m_veil','m_enforcer'] },
+];
+
+/* ---------------- combat engine ---------------- */
+function newCombat(enemyIds, title){
+  const run = G.run;
+  const enemies = enemyIds.map((id, i) => {
+    const d = ENEMIES[id];
+    const tier = run.floor - 1;
+    const hp = Math.round(rndi(d.hp[0], d.hp[1]) * (1 + 0.35*tier));
+    return {
+      id: uid(), defId: id, char: CHARS[d.char], name: d.name,
+      hp, maxHp: hp, block: 0, tier,
+      status: {}, nextMove: null, slot: i,
+      shakeT: 0, flashT: 0, dead: false, deathT: 0,
+    };
+  });
+  return {
+    title,
+    enemies,
+    turn: 0,
+    phase: 'player',        // player | enemy | won | lost
+    energy: 3, maxEnergy: 3,
+    hand: [], draw: shuffle(run.deck.map(c => c)), discard: [], exhaust: [],
+    block: 0,
+    pStatus: {},
+    pendingCard: null,      // selected card awaiting a target
+    busy: false,
+    fx: [],                 // canvas effects
+    shakeT: 0,
+  };
+}
+
+const cb = () => G.combat;
+
+/* --- deck flow --- */
+function drawCards(n){
+  const c = cb();
+  for (let i=0;i<n;i++){
+    if (c.draw.length === 0){
+      if (c.discard.length === 0) break;
+      c.draw = shuffle(c.discard); c.discard = [];
+    }
+    if (c.hand.length >= 10) break;
+    c.hand.push(c.draw.pop());
+  }
+}
+
+/* --- damage helpers --- */
+function statusN(ent, key){ return (ent.status ? ent.status[key] : cb().pStatus[key]) || 0; }
+function pStatusN(key){ return cb().pStatus[key] || 0; }
+
+function calcAttack(baseDmg, attackerStatus, targetStatus){
+  let d = baseDmg + (attackerStatus.strength || 0);
+  if (attackerStatus.weak)  d = Math.floor(d * 0.75);
+  if (targetStatus.vuln)    d = Math.floor(d * 1.5);
+  return Math.max(0, d);
+}
+
+function playerAttack(target, base){
+  const c = cb();
+  if (!target || target.dead) target = c.enemies.find(e => !e.dead);
+  if (!target) return;
+  const dmg = calcAttack(base, c.pStatus, target.status);
+  hitEnemy(target, dmg);
+  if (target.status.thorns) damagePlayer(target.status.thorns, true);
+}
+
+function hitEnemy(e, dmg){
+  const c = cb();
+  let rem = dmg;
+  if (e.block > 0){
+    const soak = Math.min(e.block, rem);
+    e.block -= soak; rem -= soak;
+    if (soak > 0) addFx('text', { x:e.cx, y:e.cy-30, txt:''+soak, color:'#9db8d4', small:true });
+  }
+  if (rem > 0){
+    e.hp = Math.max(0, e.hp - rem);
+    e.shakeT = 1; e.flashT = 1;
+    addFx('text', { x:e.cx, y:e.cy-44, txt:''+rem, color:'#f2d0c0' });
+  }
+  if (e.hp <= 0 && !e.dead){
+    e.dead = true; e.deathT = 1;
+    addFx('shatter', { x:e.cx, y:e.cy, hue:e.char.hue });
+  }
+}
+
+function damagePlayer(dmg, isThorns){
+  const c = cb();
+  let rem = dmg;
+  if (!isThorns && c.block > 0){
+    const soak = Math.min(c.block, rem);
+    c.block -= soak; rem -= soak;
+  }
+  if (rem > 0){
+    G.run.hp = Math.max(0, G.run.hp - rem);
+    c.shakeT = 1;
+    addFx('text', { x: CANVAS_W*0.16, y: CANVAS_H*0.55, txt:''+rem, color:'#e08a7c' });
+  }
+  refreshHud();
+  if (G.run.hp <= 0) loseCombat();
+}
+
+function gainBlock(n){
+  const c = cb();
+  if (c.pStatus.frail) n = Math.floor(n * 0.75);
+  c.block += n;
+  addFx('text', { x: CANVAS_W*0.16, y: CANVAS_H*0.55, txt:'+'+n+' 🛡', color:'#9db8d4' });
+}
+
+function applyStatus(ent, key, n){
+  if (ent === 'player'){
+    const st = cb().pStatus;
+    st[key] = (st[key]||0) + n;
+  } else {
+    ent.status[key] = (ent.status[key]||0) + n;
+  }
+}
+
+/* card play API given to card definitions */
+const API = {
+  attack: (t, n) => playerAttack(t, n),
+  block:  n => gainBlock(n),
+  draw:   n => { drawCards(n); },
+  status: (t, key, n) => { if (t && !t.dead) applyStatus(t, key, n); },
+  statusSelf: (key, n) => applyStatus('player', key, n),
+  energy: n => { cb().energy += n; },
+  heal:   n => { G.run.hp = Math.min(G.run.maxHp, G.run.hp + n); refreshHud(); },
+};
+
+async function playCard(card, target){
+  const c = cb();
+  if (c.phase !== 'player' || c.busy) return;
+  const def = cardDef(card);
+  const cost = cardCost(card);
+  if (c.energy < cost) return;
+  c.busy = true;
+  c.energy -= cost;
+  /* remove from hand */
+  c.hand = c.hand.filter(x => x.uid !== card.uid);
+  def.play(card, API, target);
+  c.discard.push(card);
+  c.pendingCard = null;
+  refreshCombatUI();
+  await sleep(160);
+  c.busy = false;
+  checkWin();
+  refreshCombatUI();
+}
+
+function checkWin(){
+  const c = cb();
+  if (c.phase === 'lost') return;
+  if (c.enemies.every(e => e.dead) && c.phase !== 'won'){
+    c.phase = 'won';
+    setTimeout(() => winCombat(), 900);
+  }
+}
+
+/* --- turn flow --- */
+function rollEnemyMoves(){
+  const c = cb();
+  c.enemies.forEach(e => {
+    if (e.dead) return;
+    e.nextMove = ENEMIES[e.defId].ai(e, c.turn);
+  });
+}
+
+async function startPlayerTurn(){
+  const c = cb();
+  c.turn++;
+  c.phase = 'player';
+  c.block = 0;
+  c.energy = c.maxEnergy;
+  /* player start-of-turn statuses */
+  if (c.pStatus.regen){ API.heal(c.pStatus.regen); c.pStatus.regen--; if(!c.pStatus.regen) delete c.pStatus.regen; }
+  rollEnemyMoves();
+  drawCards(5);
+  banner('YOUR TURN');
+  refreshCombatUI();
+}
+
+function tickEndOfTurnStatuses(st){
+  ['weak','vuln','frail'].forEach(k => {
+    if (st[k]){ st[k]--; if (st[k] <= 0) delete st[k]; }
+  });
+}
+
+async function endTurn(){
+  const c = cb();
+  if (c.phase !== 'player' || c.busy) return;
+  c.busy = true;
+  c.pendingCard = null;
+  /* discard hand */
+  c.discard.push(...c.hand);
+  c.hand = [];
+  tickEndOfTurnStatuses(c.pStatus);
+  c.phase = 'enemy';
+  refreshCombatUI();
+  banner('THE MIRRORS MOVE');
+  await sleep(650);
+
+  for (const e of c.enemies){
+    if (e.dead || c.phase === 'lost') continue;
+    e.block = 0;
+    const mv = e.nextMove;
+    if (!mv) continue;
+    e.acting = true;
+    await sleep(320);
+    switch(mv.type){
+      case 'attack': {
+        for (let i=0;i<(mv.times||1);i++){
+          if (c.phase === 'lost') break;
+          const dmg = calcAttack(mv.dmg, e.status, {vuln: c.pStatus.vuln});
+          damagePlayer(dmg);
+          addFx('slash', {});
+          await sleep(260);
+        }
+        break;
+      }
+      case 'block':
+        e.block += mv.block;
+        addFx('text', { x:e.cx, y:e.cy-40, txt:'+'+mv.block+' 🛡', color:'#9db8d4' });
+        break;
+      case 'attack_block': {
+        const dmg = calcAttack(mv.dmg, e.status, {vuln: c.pStatus.vuln});
+        damagePlayer(dmg); addFx('slash', {});
+        e.block += mv.block;
+        break;
+      }
+      case 'buff':
+        applyStatus(e, mv.status, mv.n);
+        addFx('text', { x:e.cx, y:e.cy-40, txt:'+'+mv.n+' '+(STATUS_META[mv.status].label), color:'#a9d08e' });
+        break;
+      case 'debuff':
+        applyStatus('player', mv.status, mv.n);
+        addFx('text', { x:CANVAS_W*0.16, y:CANVAS_H*0.55, txt:'+'+mv.n+' '+(STATUS_META[mv.status].label), color:'#d08e8e' });
+        break;
+    }
+    tickEndOfTurnStatuses(e.status);
+    e.acting = false;
+    await sleep(300);
+    if (c.phase === 'lost') break;
+  }
+
+  c.busy = false;
+  if (c.phase !== 'lost'){
+    await startPlayerTurn();
+  }
+}
+
+/* --- combat outcomes --- */
+function winCombat(){
+  const run = G.run;
+  run.fightIndex++;
+  if (run.fightIndex >= P1_FIGHTS.length){
+    /* Phase 1 placeholder ending — replaced by full run structure in phase 3 */
+    $('#victory-note').innerHTML =
+      'You fought through the antechambers of the vault. Deeper floors — the Gardens, the Salons, ' +
+      'the King’s Apartments, and the Hall of Mirrors itself — remain sealed for now.<br><br>' +
+      '<span class="small">(Phase 1 build: full descent arrives with the vault map.)</span>';
+    showScreen('victory');
+    G.combat = null;
+    return;
+  }
+  /* brief respite between fights */
+  G.run.hp = Math.min(G.run.maxHp, G.run.hp + 6);
+  startFight(run.fightIndex);
+}
+
+function loseCombat(){
+  const c = cb();
+  if (c.phase === 'lost') return;
+  c.phase = 'lost';
+  setTimeout(() => {
+    $('#death-note').innerHTML =
+      'The last thing you see is your own reflection, smiling without you.<br>' +
+      `<span class="small">Fell in: ${c.title} — turn ${c.turn}</span>`;
+    showScreen('gameover');
+    G.combat = null;
+  }, 1100);
+}
+
+/* ---------------- fx & canvas rendering ---------------- */
+const CANVAS_W = 1280, CANVAS_H = 720;
+const canvas = $('#combat-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_W; canvas.height = CANVAS_H;
+
+function addFx(type, o){
+  const c = cb(); if (!c) return;
+  if (type === 'text'){
+    c.fx.push({ type, x:o.x, y:o.y, txt:o.txt, color:o.color, small:o.small, t:0, life:1.1 });
+  } else if (type === 'shatter'){
+    const shards = [];
+    for (let i=0;i<26;i++){
+      shards.push({ x:o.x, y:o.y, vx:rnd(-4,4), vy:rnd(-6,1), r:rnd(2,7), a:rnd(0,Math.PI*2), va:rnd(-0.3,0.3) });
+    }
+    c.fx.push({ type, shards, hue:o.hue, t:0, life:1.4 });
+  } else if (type === 'slash'){
+    c.fx.push({ type, t:0, life:0.35 });
+    c.shakeT = Math.max(c.shakeT, 0.7);
+  }
+}
+
+/* enemy layout slots (centered based on count) */
+function enemyLayout(c){
+  const n = c.enemies.length;
+  const cxBase = CANVAS_W*0.62;
+  const gap = 240;
+  c.enemies.forEach((e,i) => {
+    e.cx = cxBase + (i - (n-1)/2) * gap;
+    e.cy = CANVAS_H*0.42;
+  });
+}
+
+let lastT = 0;
+function frame(t){
+  const dt = Math.min(0.05, (t - lastT)/1000 || 0.016);
+  lastT = t;
+  if (G.screen === 'combat' && cb()) drawCombat(dt, t/1000);
+  if (G.screen === 'title') drawTitle(t/1000);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function candleGlow(cx, cy, r, time, seedOff){
+  const flick = 0.85 + 0.15*Math.sin(time*7 + seedOff*13) * Math.sin(time*3.1 + seedOff*7);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r*flick);
+  g.addColorStop(0, 'rgba(255,196,110,.55)');
+  g.addColorStop(0.4, 'rgba(214,142,60,.18)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx-r, cy-r, r*2, r*2);
+  /* flame */
+  ctx.fillStyle = 'rgba(255,222,150,.95)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 2, 2.4, 5 + 1.4*Math.sin(time*9+seedOff*5), 0, 0, 7);
+  ctx.fill();
+}
+
+function drawVaultBackdrop(time){
+  /* wall */
+  const wall = ctx.createLinearGradient(0,0,0,CANVAS_H);
+  wall.addColorStop(0, '#120d09');
+  wall.addColorStop(0.62, '#1d1510');
+  wall.addColorStop(0.66, '#241a12');
+  wall.addColorStop(0.7, '#0e0a07');
+  wall.addColorStop(1, '#080605');
+  ctx.fillStyle = wall;
+  ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+
+  /* arched mirror panels along back wall */
+  for (let i=0;i<6;i++){
+    const px = 60 + i*215, pw = 130, ptop = 110, pbot = CANVAS_H*0.64;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(px, pbot);
+    ctx.lineTo(px, ptop+60);
+    ctx.arc(px+pw/2, ptop+60, pw/2, Math.PI, 0);
+    ctx.lineTo(px+pw, pbot);
+    ctx.closePath();
+    const mg = ctx.createLinearGradient(px,0,px+pw,0);
+    mg.addColorStop(0, 'rgba(38,46,56,.55)');
+    mg.addColorStop(0.5, 'rgba(70,84,98,.4)');
+    mg.addColorStop(1, 'rgba(30,36,44,.55)');
+    ctx.fillStyle = mg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,128,52,.5)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    /* faint diagonal sheen */
+    ctx.clip();
+    ctx.fillStyle = 'rgba(200,215,235,.05)';
+    ctx.beginPath();
+    ctx.moveTo(px - 40 + (Math.sin(time*0.3+i)*10), ptop);
+    ctx.lineTo(px + 30 + (Math.sin(time*0.3+i)*10), ptop);
+    ctx.lineTo(px - 10, pbot); ctx.lineTo(px - 80, pbot);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* floor */
+  const fl = ctx.createLinearGradient(0, CANVAS_H*0.7, 0, CANVAS_H);
+  fl.addColorStop(0, '#191008');
+  fl.addColorStop(1, '#060402');
+  ctx.fillStyle = fl;
+  ctx.fillRect(0, CANVAS_H*0.7, CANVAS_W, CANVAS_H*0.3);
+  /* marble seams */
+  ctx.strokeStyle = 'rgba(201,162,39,.08)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<8;i++){
+    const yy = CANVAS_H*0.72 + i*i*1.9;
+    ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(CANVAS_W,yy); ctx.stroke();
+  }
+
+  /* candle sconces */
+  candleGlow(40,  CANVAS_H*0.32, 90, time, 1);
+  candleGlow(CANVAS_W-40, CANVAS_H*0.32, 90, time, 2);
+  candleGlow(CANVAS_W*0.38, CANVAS_H*0.2, 70, time, 3);
+}
+
+function drawEnemy(e, time, targetable){
+  const w = 170, h = 240;
+  let x = e.cx - w/2, y = e.cy - h/2;
+  if (e.shakeT > 0){ x += Math.sin(e.shakeT*40)*7*e.shakeT; }
+  const dead = e.dead;
+  const da = dead ? Math.max(0, e.deathT) : 1;
+  if (dead && da <= 0) { e.rect = null; return; }
+
+  ctx.save();
+  ctx.globalAlpha = da;
+
+  /* frame */
+  ctx.fillStyle = '#0a0705';
+  ctx.strokeStyle = targetable ? `rgba(240,217,140,${0.7+0.3*Math.sin(time*6)})` : 'rgba(160,128,52,.85)';
+  ctx.lineWidth = targetable ? 5 : 4;
+  const arc = 44;
+  ctx.beginPath();
+  ctx.moveTo(x, y+h);
+  ctx.lineTo(x, y+arc);
+  ctx.arc(x+w/2, y+arc, w/2, Math.PI, 0);
+  ctx.lineTo(x+w, y+h);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  /* inner glass */
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x+7, y+h-7);
+  ctx.lineTo(x+7, y+arc);
+  ctx.arc(x+w/2, y+arc, w/2-7, Math.PI, 0);
+  ctx.lineTo(x+w-7, y+h-7);
+  ctx.closePath();
+  const gg = ctx.createLinearGradient(x,y,x,y+h);
+  gg.addColorStop(0, `hsla(${e.char.hue},22%,20%,1)`);
+  gg.addColorStop(1, '#07050a');
+  ctx.fillStyle = gg;
+  ctx.fill();
+  ctx.clip();
+
+  /* portrait or silhouette */
+  const img = portraitCache[cbCharId(e)];
+  if (img && img !== 'missing' && img.complete){
+    const iw = w-14;
+    ctx.globalAlpha = da*0.95;
+    ctx.drawImage(img, x+7, y+18, iw, h-30);
+    ctx.globalAlpha = da;
+  } else {
+    drawSilhouette(ctx, x+30, y+34, w-60, h-70, e.char, 0.95);
+  }
+  /* corrupted flicker */
+  if (e.flashT > 0){
+    ctx.fillStyle = `rgba(255,240,220,${e.flashT*0.55})`;
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.fillStyle = 'rgba(190,60,60,.05)';
+  ctx.fillRect(x, y + (Math.sin(time*2.4+e.slot)*0.5+0.5)*h, w, 4);
+  ctx.restore();
+
+  /* acting glow */
+  if (e.acting){
+    ctx.strokeStyle = 'rgba(220,90,70,.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x-4, y-4, w+8, h+8);
+  }
+
+  /* name plaque */
+  ctx.fillStyle = '#171009';
+  ctx.strokeStyle = 'rgba(160,128,52,.7)';
+  ctx.lineWidth = 1.5;
+  const pw2 = w+16;
+  ctx.fillRect(x-8, y+h+6, pw2, 22);
+  ctx.strokeRect(x-8, y+h+6, pw2, 22);
+  ctx.fillStyle = '#d9c07a';
+  ctx.font = '13px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText(e.name, e.cx, y+h+21);
+
+  /* hp bar */
+  const bw = w+16, bh = 12, bx = x-8, by = y+h+32;
+  ctx.fillStyle = '#241511';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#8c2f24';
+  ctx.fillRect(bx, by, bw*(e.hp/e.maxHp), bh);
+  ctx.strokeStyle = '#000';
+  ctx.strokeRect(bx, by, bw, bh);
+  ctx.fillStyle = '#f0e2c8';
+  ctx.font = '10px Georgia';
+  ctx.fillText(e.hp + ' / ' + e.maxHp, e.cx, by+10);
+
+  /* block chip */
+  if (e.block > 0){
+    ctx.fillStyle = '#20303f';
+    ctx.strokeStyle = '#5d7d9d';
+    ctx.beginPath(); ctx.arc(bx, by+6, 12, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#cfe2f4'; ctx.font = 'bold 11px Georgia';
+    ctx.fillText(e.block, bx, by+10);
+  }
+
+  /* statuses */
+  const sts = Object.keys(e.status);
+  if (sts.length){
+    ctx.font = '11px Georgia';
+    let sx = bx + 4;
+    sts.forEach(k => {
+      const meta = STATUS_META[k];
+      ctx.fillStyle = meta.buff ? '#a9d08e' : '#d08e8e';
+      ctx.textAlign = 'left';
+      ctx.fillText(meta.icon + statusFmt(k, e.status[k]), sx, by+30);
+      sx += 34;
+    });
+    ctx.textAlign = 'center';
+  }
+
+  /* intent */
+  if (!dead && e.nextMove && cb().phase === 'player'){
+    const mv = e.nextMove;
+    ctx.font = '20px Georgia';
+    ctx.fillStyle = '#e8d8b0';
+    let intentTxt = '';
+    if (mv.type === 'attack'){
+      const shown = calcAttack(mv.dmg, e.status, {vuln: cb().pStatus.vuln});
+      intentTxt = '🗡 ' + shown + (mv.times>1 ? '×'+mv.times : '');
+    }
+    else if (mv.type === 'block') intentTxt = '🛡 ' + mv.block;
+    else if (mv.type === 'attack_block'){
+      const shown = calcAttack(mv.dmg, e.status, {vuln: cb().pStatus.vuln});
+      intentTxt = '🗡 ' + shown + ' 🛡';
+    }
+    else if (mv.type === 'buff') intentTxt = '☗';
+    else if (mv.type === 'debuff') intentTxt = '☄';
+    const bob = Math.sin(time*3 + e.slot)*4;
+    ctx.fillText(intentTxt, e.cx, y - 14 + bob);
+  }
+
+  ctx.restore();
+  e.rect = { x: x-8, y: y-30, w: w+16, h: h+70 };
+}
+function statusFmt(k, n){ return n>1||['weak','vuln','frail','strength','thorns','regen'].includes(k) ? n : ''; }
+function cbCharId(e){ return ENEMIES[e.defId].char; }
+
+function drawCombat(dt, time){
+  const c = cb(); if (!c) return;
+  enemyLayout(c);
+
+  /* decay timers */
+  c.enemies.forEach(e => {
+    e.shakeT = Math.max(0, e.shakeT - dt*3);
+    e.flashT = Math.max(0, e.flashT - dt*4);
+    if (e.dead) e.deathT = Math.max(0, e.deathT - dt*1.2);
+  });
+  c.shakeT = Math.max(0, c.shakeT - dt*2.4);
+
+  ctx.save();
+  if (c.shakeT > 0){
+    ctx.translate(rnd(-6,6)*c.shakeT, rnd(-4,4)*c.shakeT);
+  }
+  drawVaultBackdrop(time);
+
+  const targeting = !!c.pendingCard && cardDef(c.pendingCard).target === 'enemy';
+  c.enemies.forEach(e => drawEnemy(e, time, targeting && !e.dead));
+
+  /* fx */
+  c.fx = c.fx.filter(f => {
+    f.t += dt;
+    const p = f.t / f.life;
+    if (p >= 1) return false;
+    if (f.type === 'text'){
+      ctx.globalAlpha = 1 - p*p;
+      ctx.font = (f.small ? '16px' : 'bold 26px') + ' Georgia';
+      ctx.fillStyle = f.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(f.txt, f.x, f.y - p*46);
+      ctx.globalAlpha = 1;
+    } else if (f.type === 'shatter'){
+      f.shards.forEach(s => {
+        s.x += s.vx; s.y += s.vy; s.vy += 0.25; s.a += s.va;
+        ctx.save();
+        ctx.translate(s.x, s.y); ctx.rotate(s.a);
+        ctx.globalAlpha = (1-p)*0.9;
+        ctx.fillStyle = `hsla(${f.hue},30%,70%,.9)`;
+        ctx.beginPath();
+        ctx.moveTo(0,-s.r); ctx.lineTo(s.r*0.7,s.r*0.6); ctx.lineTo(-s.r*0.7,s.r*0.5);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      });
+      ctx.globalAlpha = 1;
+    } else if (f.type === 'slash'){
+      ctx.strokeStyle = `rgba(240,220,190,${(1-p)*0.8})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_W*0.1 + p*160, CANVAS_H*0.4 + p*120);
+      ctx.lineTo(CANVAS_W*0.22 + p*160, CANVAS_H*0.62 + p*120);
+      ctx.stroke();
+    }
+    return true;
+  });
+
+  /* vignette */
+  const vg = ctx.createRadialGradient(CANVAS_W/2, CANVAS_H/2, CANVAS_H*0.35, CANVAS_W/2, CANVAS_H/2, CANVAS_H*0.85);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,.55)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+  ctx.restore();
+}
+
+/* title screen ambient candles */
+const tcv = $('#title-candles');
+const tcx = tcv.getContext('2d');
+function drawTitle(time){
+  const st = $('#stage');
+  if (tcv.width !== st.clientWidth){ tcv.width = st.clientWidth; tcv.height = st.clientHeight; }
+  tcx.clearRect(0,0,tcv.width,tcv.height);
+  const N = 7;
+  for (let i=0;i<N;i++){
+    const cx = (i+0.5)/N * tcv.width;
+    const cy = tcv.height*0.82 + Math.sin(i*3)*14;
+    const flick = 0.8 + 0.2*Math.sin(time*6 + i*17)*Math.sin(time*2.3+i*5);
+    const g = tcx.createRadialGradient(cx,cy,0,cx,cy,60*flick);
+    g.addColorStop(0,'rgba(255,196,110,.32)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    tcx.fillStyle = g;
+    tcx.fillRect(cx-70,cy-70,140,140);
+    tcx.fillStyle = 'rgba(255,226,160,.9)';
+    tcx.beginPath();
+    tcx.ellipse(cx, cy-3, 1.8, 4.5+Math.sin(time*8+i*3), 0, 0, 7);
+    tcx.fill();
+  }
+}
+
+/* canvas click → targeting */
+canvas.addEventListener('click', ev => {
+  const c = cb();
+  if (!c || c.phase !== 'player' || c.busy) return;
+  if (!c.pendingCard) return;
+  const def = cardDef(c.pendingCard);
+  if (def.target !== 'enemy') return;
+  const r = canvas.getBoundingClientRect();
+  const mx = (ev.clientX - r.left) / r.width * CANVAS_W;
+  const my = (ev.clientY - r.top) / r.height * CANVAS_H;
+  const hit = c.enemies.find(e => !e.dead && e.rect &&
+    mx >= e.rect.x && mx <= e.rect.x+e.rect.w && my >= e.rect.y && my <= e.rect.y+e.rect.h);
+  if (hit) playCard(c.pendingCard, hit);
+});
+window.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape'){
+    const c = cb();
+    if (c){ c.pendingCard = null; refreshCombatUI(); }
+  }
+});
+
+/* ---------------- DOM UI ---------------- */
+function cardEl(card, mini){
+  const def = cardDef(card);
+  const ch = CHARS[def.char];
+  const tier = gradeTier(card.grade);
+  const el = document.createElement('div');
+  el.className = `card t-${def.type} g-${tier}` + (mini ? ' mini' : '');
+  el.dataset.uid = card.uid;
+  el.innerHTML = `
+    <div class="slab">
+      <div class="glabel">
+        <span class="gnum">${card.grade.toFixed(1)}</span>
+        <span class="gname">${gradeName(card.grade)}<br>FIRST APPEARANCE</span>
+        <span class="serif">LB·${String(card.uid).padStart(4,'0')}</span>
+      </div>
+      <div class="inner">
+        <div class="art"><canvas width="120" height="86" class="sil"></canvas></div>
+        <div class="cname">${ch.name}</div>
+        <div class="ctype">${def.title} — ${def.type}</div>
+        <div class="ctext"><span>${def.text(card)}</span></div>
+      </div>
+      <div class="wear"></div>
+    </div>
+    <div class="cost">${cardCost(card)}</div>`;
+  /* placeholder art */
+  const sc = el.querySelector('canvas.sil');
+  const sctx = sc.getContext('2d');
+  const img = getPortrait(def.char);
+  if (img !== 'missing' && img.complete){
+    sctx.drawImage(img, 0, 0, sc.width, sc.height);
+  } else {
+    const bg = sctx.createRadialGradient(60,30,4,60,40,70);
+    bg.addColorStop(0, `hsla(${ch.hue},35%,30%,1)`);
+    bg.addColorStop(1, '#0c0806');
+    sctx.fillStyle = bg;
+    sctx.fillRect(0,0,sc.width,sc.height);
+    drawSilhouette(sctx, 30, 8, 60, 74, ch);
+  }
+  return el;
+}
+
+function refreshHand(){
+  const c = cb();
+  const hand = $('#hand');
+  hand.innerHTML = '';
+  if (!c) return;
+  c.hand.forEach(card => {
+    const el = cardEl(card);
+    if (cardCost(card) > c.energy) el.classList.add('unaffordable');
+    if (c.pendingCard && c.pendingCard.uid === card.uid) el.classList.add('selected');
+    el.addEventListener('click', () => onCardClick(card));
+    hand.appendChild(el);
+  });
+}
+
+function onCardClick(card){
+  const c = cb();
+  if (c.phase !== 'player' || c.busy) return;
+  if (cardCost(card) > c.energy) return;
+  const def = cardDef(card);
+  if (def.target === 'enemy'){
+    const alive = c.enemies.filter(e => !e.dead);
+    if (alive.length === 1){ playCard(card, alive[0]); return; }
+    /* toggle selection, wait for canvas click */
+    c.pendingCard = (c.pendingCard && c.pendingCard.uid === card.uid) ? null : card;
+    refreshCombatUI();
+  } else {
+    playCard(card, null);
+  }
+}
+
+function refreshHud(){
+  const run = G.run; if (!run) return;
+  const c = cb();
+  $('#p-hp-fill').style.transform = `scaleX(${run.hp/run.maxHp})`;
+  $('#p-hp-txt').textContent = `${run.hp} / ${run.maxHp}`;
+  $('#p-resto').textContent = run.restoration;
+  const blockChip = $('#p-block-chip');
+  if (c && c.block > 0){ blockChip.classList.add('show'); $('#p-block').textContent = c.block; }
+  else blockChip.classList.remove('show');
+  /* player statuses */
+  const box = $('#p-status');
+  box.innerHTML = '';
+  if (c){
+    Object.entries(c.pStatus).forEach(([k,n]) => {
+      const meta = STATUS_META[k];
+      const s = document.createElement('span');
+      s.className = 'sticon ' + (meta.buff ? 'buff' : 'debuff');
+      s.title = meta.desc;
+      s.textContent = `${meta.icon} ${meta.label} ${n}`;
+      box.appendChild(s);
+    });
+  }
+}
+
+function refreshCombatUI(){
+  const c = cb(); if (!c) return;
+  $('#energy-n').textContent = c.energy;
+  $('#energy-orb').classList.toggle('spent', c.energy === 0);
+  $('#n-draw').textContent = c.draw.length;
+  $('#n-discard').textContent = c.discard.length;
+  $('#n-exhaust').textContent = c.exhaust.length;
+  $('#pile-exhaust').style.display = c.exhaust.length ? '' : 'none';
+  $('#end-turn').disabled = c.phase !== 'player' || c.busy;
+  refreshHand();
+  refreshHud();
+}
+
+let bannerTimer = null;
+function banner(txt){
+  const b = $('#turn-banner');
+  b.textContent = txt;
+  b.style.opacity = 1;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { b.style.opacity = 0; }, 900);
+}
+
+function showPile(title, cards){
+  $('#ov-title').textContent = title;
+  const body = $('#ov-body');
+  body.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'pile-list';
+  if (!cards.length){
+    body.innerHTML = '<div class="small" style="margin:12px">Empty.</div>';
+  } else {
+    cards.forEach(cd => wrap.appendChild(cardEl(cd, true)));
+    body.appendChild(wrap);
+  }
+  $('#overlay').classList.add('on');
+}
+$('#ov-close').addEventListener('click', () => $('#overlay').classList.remove('on'));
+$('#pile-draw').addEventListener('click', () => { const c=cb(); if(c) showPile('Draw Pile (shuffled)', [...c.draw].sort((a,b)=>cardName(a).localeCompare(cardName(b)))); });
+$('#pile-discard').addEventListener('click', () => { const c=cb(); if(c) showPile('Discard Pile', c.discard); });
+$('#pile-exhaust').addEventListener('click', () => { const c=cb(); if(c) showPile('Exhausted', c.exhaust); });
+
+/* ---------------- screens & flow ---------------- */
+function showScreen(name){
+  G.screen = name;
+  $$('.screen').forEach(el => el.classList.remove('on'));
+  $('#screen-' + name).classList.add('on');
+}
+
+function startFight(index){
+  const f = P1_FIGHTS[index];
+  G.combat = newCombat(f.enemies, f.name);
+  $('#ct-floor').textContent = 'THE VAULT — DESCENT ' + (index+1) + ' OF ' + P1_FIGHTS.length;
+  $('#ct-name').textContent = f.name;
+  showScreen('combat');
+  startPlayerTurn();
+}
+
+$('#btn-newrun').addEventListener('click', () => {
+  G.run = newRunState();
+  startFight(0);
+});
+$('#btn-go-title').addEventListener('click', () => { G.run = null; showScreen('title'); });
+$('#btn-vic-title').addEventListener('click', () => { G.run = null; showScreen('title'); });
+$('#end-turn').addEventListener('click', endTurn);
+
+showScreen('title');
+</script>
+</body>
+</html>
