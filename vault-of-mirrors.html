@@ -170,6 +170,46 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
 #screen-victory h1{font-size:44px; color:var(--gold-hi); letter-spacing:.14em; text-shadow:0 0 30px rgba(201,162,39,.5)}
 .deathnote{color:var(--parch-dim); font-style:italic; margin:16px 0 24px; max-width:520px; line-height:1.6}
 
+/* ---------- map screen ---------- */
+#screen-map.on{display:flex; flex-direction:column; align-items:center}
+#map-head{display:flex; align-items:center; gap:18px; padding:16px 0 4px}
+#map-head .fl{font-size:12px; letter-spacing:.3em; color:var(--parch-dim); text-transform:uppercase}
+#map-head .nm{font-size:26px; letter-spacing:.12em; color:var(--gold-hi)}
+#map-chips{position:absolute; top:14px; right:2%; display:flex; gap:8px; align-items:center}
+#map-chips .chip{font-size:14px; padding:4px 12px}
+#btn-viewdeck{padding:5px 14px; font-size:12px}
+#map-wrap{position:relative; flex:1; width:min(760px,86%); margin-bottom:8px}
+#map-svg{position:absolute; inset:0; width:100%; height:100%}
+#map-svg line{stroke:rgba(201,162,39,.22); stroke-width:2; vector-effect:non-scaling-stroke}
+#map-svg line.walked{stroke:rgba(240,217,140,.6)}
+.mapnode{position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:19px; cursor:default;
+  background:radial-gradient(circle at 35% 30%, #3a2f1e, #1b1610 70%);
+  border:2px solid #4a3b20; color:#8d8168; box-shadow:0 3px 10px rgba(0,0,0,.6); z-index:2;
+  transition:transform .15s}
+.mapnode .nlbl{position:absolute; top:105%; left:50%; transform:translateX(-50%); font-size:9px;
+  letter-spacing:.1em; color:var(--parch-dim); white-space:nowrap; text-transform:uppercase; opacity:0;
+  transition:opacity .15s; pointer-events:none}
+.mapnode:hover .nlbl{opacity:1}
+.mapnode.reachable{cursor:pointer; border-color:var(--gold); color:var(--gold-hi);
+  animation:npulse 1.6s infinite}
+.mapnode.reachable:hover{transform:scale(1.25)}
+.mapnode.current{border-color:var(--gold-hi); color:var(--gold-hi);
+  box-shadow:0 0 18px rgba(240,217,140,.5)}
+.mapnode.done{opacity:.38}
+.mapnode.n-boss{width:58px; height:58px; margin:-29px 0 0 -29px; font-size:26px; border-width:3px}
+@keyframes npulse{0%,100%{box-shadow:0 0 6px rgba(201,162,39,.25)} 50%{box-shadow:0 0 20px rgba(201,162,39,.7)}}
+
+/* ---------- rest / event / transition screens ---------- */
+#screen-rest.on, #screen-event.on, #screen-transition.on{display:flex; align-items:center; justify-content:center}
+.story-panel{max-width:640px; text-align:center; background:linear-gradient(180deg,rgba(26,20,14,.94),rgba(13,10,7,.94));
+  border:1px solid var(--gold-dim); border-radius:6px; padding:38px 46px; box-shadow:0 12px 60px rgba(0,0,0,.8)}
+.story-panel h2{color:var(--gold-hi); font-size:26px; letter-spacing:.12em; margin-bottom:6px}
+.story-panel .body{color:var(--parch-dim); font-style:italic; line-height:1.65; margin:16px 0 24px; font-size:15px}
+.story-panel .choices{display:flex; flex-direction:column; gap:12px; align-items:center}
+.story-panel .choices .gbtn{min-width:340px; font-size:15px}
+.story-panel .choices .gbtn .sub{display:block; font-size:11.5px; color:var(--parch-dim); letter-spacing:.02em; margin-top:3px}
+
 /* ---------- reward screen ---------- */
 #screen-reward.on{display:flex; align-items:center; justify-content:center}
 .reward-wrap{text-align:center; max-width:760px}
@@ -234,6 +274,58 @@ button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
       </div>
       <button class="gbtn" id="end-turn">END TURN</button>
       <div id="hand"></div>
+    </div>
+  </div>
+
+  <!-- VAULT MAP -->
+  <div class="screen" id="screen-map">
+    <div id="map-head">
+      <div>
+        <div class="fl" id="map-floor-label"></div>
+        <div class="nm" id="map-floor-name"></div>
+      </div>
+    </div>
+    <div id="map-chips">
+      <span class="chip">❤ <b id="map-hp"></b></span>
+      <span class="chip">✦ <b id="map-resto"></b></span>
+      <button class="gbtn" id="btn-viewdeck">DECK <span id="map-decksize"></span></button>
+    </div>
+    <div id="map-wrap">
+      <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <!-- REST -->
+  <div class="screen" id="screen-rest">
+    <div class="story-panel">
+      <h2>A QUIET ALCOVE</h2>
+      <div class="goldrule"></div>
+      <div class="body">A cold hearth, a chaise longue under a dust sheet, and a worktable still laid
+        with Le Brun’s restoration tools. The mirrors here are dark and calm.</div>
+      <div class="choices">
+        <button class="gbtn" id="btn-rest-heal">REST<span class="sub" id="rest-heal-sub"></span></button>
+        <button class="gbtn" id="btn-rest-polish">RESTORE A CARD<span class="sub">Polish one First Appearance up a grade step</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENT -->
+  <div class="screen" id="screen-event">
+    <div class="story-panel">
+      <h2 id="event-title"></h2>
+      <div class="goldrule"></div>
+      <div class="body" id="event-body"></div>
+      <div class="choices" id="event-choices"></div>
+    </div>
+  </div>
+
+  <!-- FLOOR TRANSITION -->
+  <div class="screen" id="screen-transition">
+    <div class="story-panel">
+      <h2 id="trans-title"></h2>
+      <div class="goldrule"></div>
+      <div class="body" id="trans-body"></div>
+      <div class="choices"><button class="gbtn" id="btn-trans-go">DESCEND</button></div>
     </div>
   </div>
 
@@ -704,24 +796,188 @@ function newRunState(){
   const deck = [];
   ['one','one','two','two','three','three','four','four','five','five']
     .forEach(id => deck.push(makeCard(id, pick([4.5,5.0,5.5,6.0]))));
-  return {
+  const run = {
     seed,
     hp: 70, maxHp: 70,
     restoration: 40,
     deck,
     floor: 1,
-    fightIndex: 0,
+    map: null, pos: null,
+    usedEvents: [],
     startedAt: Date.now(),
   };
+  return run;
 }
 
-/* Phase-2 fight ladder (replaced by the procedural map in phase 3) */
-const P1_FIGHTS = [
-  { name:'Antechamber of Glass', enemies:['m_cadet'] },
-  { name:'Corridor of Echoes',   enemies:['m_spider','m_silverflash'] },
-  { name:'The Servants’ Stair', enemies:['m_tifa','m_cadet'] },
-  { name:'The Reading Alcove',   enemies:['m_darkhold','m_magnolia'] },
-  { name:'The Gilded Threshold', enemies:['m_veil','m_enforcer'] },
+function polishCard(card){
+  const i = GRADE_STEPS.indexOf(card.grade);
+  if (i >= 0 && i < GRADE_STEPS.length - 1) card.grade = GRADE_STEPS[i+1];
+}
+
+/* ---------------- floors & encounters ---------------- */
+const FLOORS = [
+  { name:'The Gardens', label:'FLOOR I — BENEATH THE PARTERRES', rows:6,
+    rooms:['A Hedge of Glass','The Drowned Bosquet','Latona’s Shadow','The Orangerie Gate','A Gravel Walk'],
+    encounters:[['m_cadet'],['m_spider'],['m_silverflash','m_silverflash'],['m_spider','m_cadet']],
+    elites:[['m_enforcer'],['m_tifa','m_silverflash']] },
+  { name:'The Peace Salon', label:'FLOOR II — SALON DE LA PAIX', rows:6,
+    rooms:['The Olive Branch Panel','A Ceiling of Doves','The Broken Armistice','The Gilt Meridian','Minerva’s Alcove'],
+    encounters:[['m_tifa'],['m_magnolia','m_cadet'],['m_veil'],['m_silverflash','m_silverflash','m_cadet']],
+    elites:[['m_cloud'],['m_magnolia','m_enforcer']] },
+  { name:'The War Salon', label:'FLOOR III — SALON DE LA GUERRE', rows:6,
+    rooms:['The Stucco Triumph','A Frieze of Captives','The King on Horseback','Mars Ascendant','The Trophy Wall'],
+    encounters:[['m_cloud'],['m_enforcer','m_cadet'],['m_tornada'],['m_tifa','m_tifa']],
+    elites:[['m_spiderdemon'],['m_cloud','m_enforcer']] },
+  { name:'The King’s Apartments', label:'FLOOR IV — APPARTEMENT DU ROI', rows:7,
+    rooms:['The Council Antechamber','The Bull’s-Eye Salon','The State Bedchamber','A Corridor of Valets','The Clock Cabinet'],
+    encounters:[['m_darkhold','m_veil'],['m_tornada','m_silverflash'],['m_cloud','m_magnolia'],['m_veil','m_veil']],
+    elites:[['m_spiderdemon','m_darkhold'],['m_enforcer','m_enforcer','m_magnolia']] },
+  { name:'The Hall of Mirrors', label:'FLOOR V — GALERIE DES GLACES', rows:7,
+    rooms:['The Seventeenth Arch','A Gallery of Selves','The Candle Meridian','Where the Treaty Waits','The Last Reflection'],
+    encounters:[['m_veil','m_darkhold','m_silverflash'],['m_tornada','m_tornada'],['m_cloud','m_darkhold'],['m_spiderdemon','m_veil']],
+    elites:[['m_spiderdemon','m_spiderdemon'],['m_cloud','m_cloud','m_darkhold']] },
+];
+/* placeholder floor bosses (Zorr arrives in phase 5) */
+const FLOOR_BOSSES = [
+  { name:'Warden of the Parterres', enemies:['m_enforcer','m_enforcer'] },
+  { name:'Warden of the Doves',     enemies:['m_cloud','m_magnolia'] },
+  { name:'Warden of the Trophies',  enemies:['m_spiderdemon'] },
+  { name:'Warden of the Bedchamber',enemies:['m_spiderdemon','m_darkhold'] },
+  { name:'Warden of the Glass',     enemies:['m_spiderdemon','m_cloud'] },
+];
+
+/* ---------------- procedural node map ---------------- */
+const NODE_ICONS = { combat:'⚔', elite:'☠', rest:'⌂', event:'❔', curator:'✦', boss:'♛' };
+const NODE_LABELS = { combat:'Mirror Combat', elite:'Elite Guardian', rest:'Quiet Alcove',
+                      event:'Curiosity', curator:'A Curator', boss:'The Floor Warden' };
+
+function genFloorMap(floorIdx){
+  const F = FLOORS[floorIdx];
+  const R = F.rows;                       // interior rows before the boss
+  const nodes = [];
+  let nid = 0;
+  const rowsArr = [];
+  for (let r = 0; r < R; r++){
+    const w = r === 0 ? rndi(2,3) : rndi(2,4);
+    const row = [];
+    for (let i = 0; i < w; i++){
+      const x = w === 1 ? 50 : 14 + (i/(w-1))*72 + rnd(-4,4);
+      const y = 8 + (r/R)*80;
+      row.push({ id:nid++, row:r, x, y, type:'combat', next:[], done:false });
+    }
+    rowsArr.push(row);
+    nodes.push(...row);
+  }
+  /* boss node */
+  const boss = { id:nid++, row:R, x:50, y:94, type:'boss', next:[], done:false };
+  nodes.push(boss);
+  rowsArr.push([boss]);
+
+  /* edges */
+  for (let r = 0; r < R; r++){
+    const cur = rowsArr[r], nxt = rowsArr[r+1];
+    cur.forEach((n,i) => {
+      const a = Math.min(nxt.length-1, Math.floor(i * nxt.length / cur.length));
+      n.next.push(nxt[a].id);
+      if (rng() < 0.42 && a+1 < nxt.length) n.next.push(nxt[a+1].id);
+    });
+    /* guarantee every next-row node is reachable */
+    nxt.forEach((m,j) => {
+      if (!cur.some(n => n.next.includes(m.id))){
+        const src = cur[Math.min(cur.length-1, Math.floor(j * cur.length / nxt.length))];
+        src.next.push(m.id);
+      }
+    });
+  }
+
+  /* assign types to interior rows (row 0 stays combat) */
+  const interior = nodes.filter(n => n.row > 0 && n.row < R);
+  interior.forEach(n => {
+    const r = rng();
+    if      (r < 0.42) n.type = 'combat';
+    else if (r < 0.56 && n.row >= 2) n.type = 'elite';
+    else if (r < 0.74) n.type = 'event';
+    else if (r < 0.87) n.type = 'rest';
+    else               n.type = 'curator';
+  });
+  /* guarantees: at least one rest and one curator per floor */
+  ['rest','curator'].forEach(t => {
+    if (!interior.some(n => n.type === t) && interior.length){
+      const cands = interior.filter(n => n.type === 'combat' || n.type === 'event');
+      pick(cands.length ? cands : interior).type = t;
+    }
+  });
+  /* pre-roll encounters & room names so the map is stable */
+  nodes.forEach(n => {
+    if (n.type === 'combat') { n.fight = pick(F.encounters); n.room = pick(F.rooms); }
+    if (n.type === 'elite')  { n.fight = pick(F.elites);     n.room = pick(F.rooms); }
+    if (n.type === 'boss')   { n.fight = FLOOR_BOSSES[floorIdx].enemies; n.room = FLOOR_BOSSES[floorIdx].name; }
+  });
+  return { nodes, rows: R+1 };
+}
+
+/* ---------------- events ---------------- */
+const EVENTS = [
+  { id:'study', title:'THE PAINTER’S STUDY',
+    body:'A leather folio lies open on an easel: Le Brun’s own preparatory sketches for the frames, ' +
+         'annotated in a hand that trembles more with each page.',
+    choices:[
+      { label:'Sell the sketches later', sub:'+15 ✦ Restoration',
+        fx: run => { run.restoration += 15; return 'You wrap the folio in oilcloth. Forgive me, grand-père.'; } },
+      { label:'Study the technique', sub:'Polish a random card up one grade step',
+        fx: run => { const c = pick(run.deck); polishCard(c); return `You practice his strokes. ${cardName(c)} rises to ${c.grade.toFixed(1)}.`; } },
+    ]},
+  { id:'cracked', title:'THE CRACKED MIRROR',
+    body:'One frame hangs empty and fractured, but deep in the silvering something still moves — ' +
+         'a First Appearance, half-sealed, reaching toward your hand.',
+    choices:[
+      { label:'Reach into the glass', sub:'Gain a high-grade card, take 8 damage',
+        fx: run => { const card = makeCard(pick(DROP_POOL), pick([8.0,8.5,9.0,9.2])); run.deck.push(card);
+          run.hp = Math.max(1, run.hp - 8); return `Glass bites your wrist. You pull free ${cardName(card)} — graded ${card.grade.toFixed(1)}.`; } },
+      { label:'Let it sleep', sub:'Leave, and steady your nerves (+3 HP)',
+        fx: run => { run.hp = Math.min(run.maxHp, run.hp + 3); return 'You bow to the broken frame and move on.'; } },
+    ]},
+  { id:'latona', title:'THE FOUNTAIN BELOW LATONA',
+    body:'Impossible: a fountain runs down here, fed by no pipe you can find. The water smells of ' +
+         'rain on hot gravel — the Gardens above, remembering themselves.',
+    choices:[
+      { label:'Drink', sub:'Heal 15 HP',
+        fx: run => { run.hp = Math.min(run.maxHp, run.hp + 15); return 'Cold light runs through you.'; } },
+      { label:'Wash a wounded card', sub:'Cleanse a random quirk (if any)',
+        fx: run => { const q = run.deck.find(c => c.quirk); if (!q) return 'None of your cards need the water.';
+          q.quirk = null; return `The stains lift from ${cardName(q)}. Its quirk is gone.`; } },
+    ]},
+  { id:'cabinet', title:'A LOCKED CABINET',
+    body:'A curio cabinet of ebony and gilt bronze, sealed with a lock shaped like a sunburst. ' +
+         'Something inside ticks, though no clock face shows.',
+    choices:[
+      { label:'Force the lock', sub:'50%: +25 ✦ — 50%: take 6 damage',
+        fx: run => { if (rng() < 0.5){ run.restoration += 25; return 'The door swings open on a drawer of gold leaf. +25 ✦.'; }
+          run.hp = Math.max(1, run.hp - 6); return 'The sunburst snaps shut on your fingers. The ticking stops.'; } },
+      { label:'Leave it sealed', sub:'+5 ✦ for your restraint',
+        fx: run => { run.restoration += 5; return 'Some doors are locked from the inside. You pocket a loose gilt rosette.'; } },
+    ]},
+  { id:'gardener', title:'THE GARDENER’S GHOST',
+    body:'An old man in a leather apron prunes a rosebush that isn’t there. He does not look up. ' +
+         '“Lost, monsieur? Everyone down here is.”',
+    choices:[
+      { label:'Listen to his stories', sub:'+5 Max HP',
+        fx: run => { run.maxHp += 5; run.hp += 5; return 'He talks of Le Nôtre and of roots that hold the palace up. You feel sturdier.'; } },
+      { label:'Ask about treasure', sub:'+10 ✦ Restoration',
+        fx: run => { run.restoration += 10; return '“Under the third flagstone. It was always under the third flagstone.”'; } },
+    ]},
+  { id:'queen', title:'THE QUEEN’S LOOKING GLASS',
+    body:'A hand mirror on a velvet cushion, small enough to palm. Your reflection in it is a ' +
+         'half-second slow, and it smiles first.',
+    choices:[
+      { label:'Meet its gaze', sub:'Duplicate your highest-grade card, lose 10 ✦',
+        fx: run => { if (run.restoration < 10) return 'The glass clouds over. It wants ✦ 10 you do not have.';
+          run.restoration -= 10; const best = [...run.deck].sort((a,b)=>b.grade-a.grade)[0];
+          const copy = makeCard(best.defId, best.grade, best.quirk); run.deck.push(copy);
+          return `The mirror keeps your reflection and returns a second ${cardName(best)}.`; } },
+      { label:'Turn it face down', sub:'Nothing happens. Probably.',
+        fx: () => 'You set it down gently, glass to the velvet. The room exhales.' },
+    ]},
 ];
 
 /* ---------------- combat engine ---------------- */
@@ -986,31 +1242,25 @@ async function endTurn(){
 /* --- combat outcomes --- */
 function winCombat(){
   const run = G.run;
-  run.fightIndex++;
-  const resto = 10 + rndi(0, 6) + run.floor * 2;
+  const node = currentNode();
+  const isElite = node && (node.type === 'elite' || node.type === 'boss');
+  const resto = (isElite ? 20 : 10) + rndi(0, 6) + run.floor * 2;
   run.restoration += resto;
   G.combat = null;
-  showRewardScreen(resto);
+  showRewardScreen(resto, isElite);
 }
 
 function afterReward(){
-  const run = G.run;
-  if (run.fightIndex >= P1_FIGHTS.length){
-    /* Phase 2 placeholder ending — replaced by full run structure in phase 3 */
-    $('#victory-note').innerHTML =
-      'You fought through the antechambers of the vault. Deeper floors — the Gardens, the Salons, ' +
-      'the King’s Apartments, and the Hall of Mirrors itself — remain sealed for now.<br><br>' +
-      '<span class="small">(Phase 2 build: full descent arrives with the vault map.)</span>';
-    showScreen('victory');
-    return;
-  }
-  G.run.hp = Math.min(G.run.maxHp, G.run.hp + 5);
-  startFight(run.fightIndex);
+  returnToMap();
 }
 
 /* --- card reward: three graded slabs pulled from the rubble --- */
-function showRewardScreen(resto){
-  const offers = [makeDrop(), makeDrop(), makeDrop()];
+function showRewardScreen(resto, isElite){
+  /* elites shake loose better-preserved slabs: roll twice, keep the higher grade */
+  const roll = () => isElite
+    ? makeCard(pick(DROP_POOL), Math.max(rollGrade(), rollGrade()))
+    : makeDrop();
+  const offers = [roll(), roll(), roll()];
   $('#reward-resto').innerHTML = `The shattered frames yield <b>✦ ${resto}</b> Restoration.` +
     `  <span class="small">(You hold ✦ ${G.run.restoration}.)</span>`;
   const box = $('#reward-cards');
@@ -1035,10 +1285,11 @@ function loseCombat(){
   const c = cb();
   if (c.phase === 'lost') return;
   c.phase = 'lost';
+  const floorName = FLOORS[G.run.floor - 1].name;
   setTimeout(() => {
     $('#death-note').innerHTML =
       'The last thing you see is your own reflection, smiling without you.<br>' +
-      `<span class="small">Fell in: ${c.title} — turn ${c.turn}</span>`;
+      `<span class="small">Fell in: ${c.title}, ${floorName} — turn ${c.turn}</span>`;
     showScreen('gameover');
     G.combat = null;
   }, 1100);
@@ -1533,7 +1784,7 @@ function banner(txt){
   bannerTimer = setTimeout(() => { b.style.opacity = 0; }, 900);
 }
 
-function showPile(title, cards){
+function showPile(title, cards, pickable){
   $('#ov-title').textContent = title;
   const body = $('#ov-body');
   body.innerHTML = '';
@@ -1542,7 +1793,18 @@ function showPile(title, cards){
   if (!cards.length){
     body.innerHTML = '<div class="small" style="margin:12px">Empty.</div>';
   } else {
-    cards.forEach(cd => wrap.appendChild(cardEl(cd, true)));
+    cards.forEach(cd => {
+      const el = cardEl(cd, true);
+      if (pickable){
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          $('#overlay').classList.remove('on');
+          const h = pickHandler; pickHandler = null;
+          if (h) h(cd);
+        });
+      }
+      wrap.appendChild(el);
+    });
     body.appendChild(wrap);
   }
   $('#overlay').classList.add('on');
@@ -1559,19 +1821,225 @@ function showScreen(name){
   $('#screen-' + name).classList.add('on');
 }
 
-function startFight(index){
-  const f = P1_FIGHTS[index];
-  G.combat = newCombat(f.enemies, f.name);
-  $('#ct-floor').textContent = 'THE VAULT — DESCENT ' + (index+1) + ' OF ' + P1_FIGHTS.length;
-  $('#ct-name').textContent = f.name;
+/* ---------------- vault map flow ---------------- */
+function currentNode(){
+  const run = G.run;
+  if (!run || !run.map || run.pos == null) return null;
+  return run.map.nodes.find(n => n.id === run.pos) || null;
+}
+
+function reachableIds(){
+  const run = G.run;
+  if (!run.map) return [];
+  const node = currentNode();
+  if (!node) return run.map.nodes.filter(n => n.row === 0).map(n => n.id);
+  if (!node.done) return [];              // mid-node (shouldn't happen on map)
+  return node.next;
+}
+
+function renderMap(){
+  const run = G.run;
+  const F = FLOORS[run.floor - 1];
+  $('#map-floor-label').textContent = F.label;
+  $('#map-floor-name').textContent = F.name;
+  $('#map-hp').textContent = run.hp + ' / ' + run.maxHp;
+  $('#map-resto').textContent = run.restoration;
+  $('#map-decksize').textContent = '(' + run.deck.length + ')';
+
+  const wrap = $('#map-wrap');
+  wrap.querySelectorAll('.mapnode').forEach(el => el.remove());
+  const svg = $('#map-svg');
+  svg.innerHTML = '';
+  const reach = reachableIds();
+  const cur = currentNode();
+
+  run.map.nodes.forEach(n => {
+    n.next.forEach(id => {
+      const m = run.map.nodes.find(x => x.id === id);
+      const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+      ln.setAttribute('x1', n.x); ln.setAttribute('y1', n.y);
+      ln.setAttribute('x2', m.x); ln.setAttribute('y2', m.y);
+      if (n.done && m.done) ln.classList.add('walked');
+      svg.appendChild(ln);
+    });
+  });
+
+  run.map.nodes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'mapnode n-' + n.type;
+    if (n.done) el.classList.add('done');
+    if (cur && cur.id === n.id) el.classList.add('current');
+    if (reach.includes(n.id)) el.classList.add('reachable');
+    el.style.left = n.x + '%';
+    el.style.top = n.y + '%';
+    el.innerHTML = NODE_ICONS[n.type] + `<span class="nlbl">${NODE_LABELS[n.type]}</span>`;
+    if (reach.includes(n.id)) el.addEventListener('click', () => enterNode(n));
+    wrap.appendChild(el);
+  });
+}
+
+function showMap(){
+  showScreen('map');
+  renderMap();
+}
+
+function enterNode(node){
+  const run = G.run;
+  run.pos = node.id;
+  switch(node.type){
+    case 'combat': case 'elite': case 'boss':
+      startFight(node); break;
+    case 'rest':
+      $('#rest-heal-sub').textContent = `Heal ${Math.round(run.maxHp*0.3)} HP`;
+      showScreen('rest'); break;
+    case 'event':
+      showEvent(); break;
+    case 'curator':
+      /* phase-4 curators; for now the stall is shuttered */
+      showStory('A SHUTTERED STALL',
+        'Someone has set up shop between two dead mirrors — folding table, velvet cloth, a hand-lettered ' +
+        'sign: “BACK SOON — GONE TO APPRAISE.” A saucer of coins sits unattended.',
+        [{ label:'Take a polite commission', sub:'+8 ✦ Restoration',
+           fx: r => { r.restoration += 8; return 'You leave a note: “Owed to the House of Le Brun.”'; } }]);
+      break;
+  }
+}
+
+function finishNode(){
+  const node = currentNode();
+  if (node) node.done = true;
+  if (node && node.type === 'boss'){ floorTransition(); return; }
+  showMap();
+}
+const returnToMap = finishNode;
+
+/* --- combat launch from a map node --- */
+function startFight(node){
+  const F = FLOORS[G.run.floor - 1];
+  G.combat = newCombat(node.fight, node.room);
+  $('#ct-floor').textContent = F.label;
+  $('#ct-name').textContent = node.room + (node.type === 'elite' ? ' — ELITE' : '');
   showScreen('combat');
   startPlayerTurn();
 }
 
+/* --- events & stories --- */
+function showStory(title, body, choices){
+  $('#event-title').textContent = title;
+  $('#event-body').textContent = body;
+  const box = $('#event-choices');
+  box.innerHTML = '';
+  choices.forEach(ch => {
+    const b = document.createElement('button');
+    b.className = 'gbtn';
+    b.innerHTML = ch.label + (ch.sub ? `<span class="sub">${ch.sub}</span>` : '');
+    b.addEventListener('click', () => {
+      const result = ch.fx ? ch.fx(G.run) : '';
+      refreshHud();
+      if (G.run.hp <= 0){ runDied('A choice in the dark went badly.'); return; }
+      if (result){
+        $('#event-body').innerHTML = `<i>${result}</i>`;
+        box.innerHTML = '';
+        const done = document.createElement('button');
+        done.className = 'gbtn';
+        done.textContent = 'CONTINUE';
+        done.addEventListener('click', finishNode);
+        box.appendChild(done);
+      } else finishNode();
+    });
+    box.appendChild(b);
+  });
+  showScreen('event');
+}
+
+function showEvent(){
+  const run = G.run;
+  const fresh = EVENTS.filter(e => !run.usedEvents.includes(e.id));
+  const ev = pick(fresh.length ? fresh : EVENTS);
+  run.usedEvents.push(ev.id);
+  showStory(ev.title, ev.body, ev.choices);
+}
+
+/* --- rest --- */
+$('#btn-rest-heal').addEventListener('click', () => {
+  const run = G.run;
+  run.hp = Math.min(run.maxHp, run.hp + Math.round(run.maxHp*0.3));
+  finishNode();
+});
+$('#btn-rest-polish').addEventListener('click', () => {
+  pickCardFromDeck('Choose a First Appearance to restore (+1 grade step)', card => {
+    polishCard(card);
+    finishNode();
+  });
+});
+
+/* deck viewer & pickers */
+let pickHandler = null;
+function pickCardFromDeck(title, onPick){
+  pickHandler = onPick;
+  showPile(title, G.run.deck, true);
+}
+
+/* --- floor transition & upkeep --- */
+function payUpkeep(){
+  const run = G.run;
+  const report = [];
+  run.deck.forEach(card => {
+    const cost = upkeepCost(card);
+    if (!cost) return;
+    if (run.restoration >= cost){
+      run.restoration -= cost;
+      report.push(`✦ ${cost} spent keeping ${cardName(card)} at ${card.grade.toFixed(1)}.`);
+    } else {
+      const old = card.grade;
+      degradeCard(card);
+      report.push(`No ✦ left for ${cardName(card)} — it wears from ${old.toFixed(1)} to ${card.grade.toFixed(1)}.`);
+    }
+  });
+  return report;
+}
+
+function floorTransition(){
+  const run = G.run;
+  if (run.floor >= FLOORS.length){
+    /* the vault is cleared */
+    const mins = Math.floor((Date.now() - run.startedAt)/60000);
+    $('#victory-note').innerHTML =
+      'The last warden shatters, and every frame in the Hall of Mirrors goes quiet at once.<br>' +
+      'The vault is yours, as it was always meant to be.<br><br>' +
+      `<span class="small">Cleared in ${mins} min — ${run.deck.length} First Appearances in the ledger.</span>`;
+    showScreen('victory');
+    return;
+  }
+  const report = payUpkeep();
+  const healed = Math.min(run.maxHp - run.hp, 12);
+  run.hp += healed;
+  run.floor++;
+  run.map = genFloorMap(run.floor - 1);
+  run.pos = null;
+  const F = FLOORS[run.floor - 1];
+  $('#trans-title').textContent = 'THE STAIR WINDS DOWN';
+  $('#trans-body').innerHTML =
+    `The warden’s frame collapses into sand. Behind it: a stair, and colder air.<br>` +
+    `<b style="color:var(--gold-hi)">${F.name}</b> waits below.<br><br>` +
+    (report.length ? '<span class="small">' + report.join('<br>') + '</span><br>' : '') +
+    `<span class="small">You bind your wounds (+${healed} HP).</span>`;
+  showScreen('transition');
+}
+$('#btn-trans-go').addEventListener('click', showMap);
+
+function runDied(note){
+  $('#death-note').innerHTML = note;
+  showScreen('gameover');
+  G.combat = null;
+}
+
 $('#btn-newrun').addEventListener('click', () => {
   G.run = newRunState();
-  startFight(0);
+  G.run.map = genFloorMap(0);
+  showMap();
 });
+$('#btn-viewdeck').addEventListener('click', () => { pickHandler = null; showPile('Your Ledger — ' + G.run.deck.length + ' First Appearances', G.run.deck); });
 $('#btn-go-title').addEventListener('click', () => { G.run = null; showScreen('title'); });
 $('#btn-vic-title').addEventListener('click', () => { G.run = null; showScreen('title'); });
 $('#end-turn').addEventListener('click', endTurn);
