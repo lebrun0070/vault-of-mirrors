@@ -1,0 +1,2540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vault of Mirrors — A Le Brun Legacy</title>
+<style>
+:root{
+  --gold:#c9a227; --gold-hi:#f0d98c; --gold-dim:#8a6d1d;
+  --ink:#0d0a08; --panel:#171210; --panel2:#1f1815;
+  --parch:#e8dcc0; --parch-dim:#b3a684;
+  --blood:#b03a2e; --arcane:#7d5ba6; --verdant:#5b8c5a;
+  --atk:#8c3b31; --skl:#31608c; --pwr:#7d5ba6;
+}
+*{box-sizing:border-box; margin:0; padding:0; user-select:none; -webkit-user-select:none}
+html,body{height:100%; background:#050403; color:var(--parch);
+  font-family:Georgia,'Times New Roman',serif; overflow:hidden}
+#app{position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center}
+#stage{position:relative; width:min(100vw,177.7vh); height:min(56.25vw,100vh); overflow:hidden;
+  background:radial-gradient(ellipse at 50% 30%, #16100c 0%, #080605 70%)}
+.screen{position:absolute; inset:0; display:none}
+.screen.on{display:block}
+
+/* ---------- shared chrome ---------- */
+h1,h2,h3{font-weight:normal; letter-spacing:.08em}
+.goldrule{width:220px; height:1px; margin:14px auto;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+button.gbtn{cursor:pointer; font-family:inherit; color:var(--parch);
+  background:linear-gradient(180deg,#2a211a,#16110d); border:1px solid var(--gold-dim);
+  padding:10px 26px; font-size:17px; letter-spacing:.12em; border-radius:3px;
+  transition:all .15s}
+button.gbtn:hover{border-color:var(--gold-hi); color:var(--gold-hi);
+  box-shadow:0 0 14px rgba(201,162,39,.25); text-shadow:0 0 8px rgba(240,217,140,.5)}
+button.gbtn:disabled{opacity:.4; cursor:default; box-shadow:none}
+.small{font-size:13px; color:var(--parch-dim)}
+
+/* ---------- title ---------- */
+#screen-title{display:none; text-align:center}
+#screen-title.on{display:flex; flex-direction:column; align-items:center; justify-content:center}
+#screen-title h1{font-size:clamp(30px,5.5vmin,58px); color:var(--gold-hi);
+  text-shadow:0 0 30px rgba(201,162,39,.35), 0 2px 0 #000}
+#screen-title .sub{font-style:italic; color:var(--parch-dim); margin-top:6px; font-size:clamp(13px,1.8vmin,18px)}
+#screen-title .premise{max-width:560px; margin:20px auto; line-height:1.6;
+  color:var(--parch-dim); font-size:clamp(12px,1.6vmin,15px); font-style:italic}
+#title-candles{position:absolute; inset:0; z-index:-1}
+
+/* ---------- combat ---------- */
+#screen-combat{background:#000}
+#combat-canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+#combat-ui{position:absolute; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:flex-end}
+#combat-ui > *{pointer-events:auto}
+
+#hud{position:absolute; left:1.5%; bottom:30%; width:230px; pointer-events:auto}
+#hud .plate{background:linear-gradient(180deg,rgba(30,23,17,.92),rgba(15,11,8,.92));
+  border:1px solid var(--gold-dim); border-radius:4px; padding:10px 12px;
+  box-shadow:0 4px 18px rgba(0,0,0,.6)}
+#hud .pname{color:var(--gold-hi); font-size:15px; letter-spacing:.06em; margin-bottom:6px}
+.bar{position:relative; height:16px; background:#241511; border:1px solid #000; border-radius:2px; overflow:hidden}
+.bar .fill{position:absolute; inset:0; transform-origin:left;
+  background:linear-gradient(180deg,#a8352a,#6e1f16); transition:transform .3s}
+.bar .txt{position:absolute; inset:0; text-align:center; font-size:11px; line-height:16px;
+  color:#f5e9d0; text-shadow:0 1px 2px #000}
+#hud .row{display:flex; align-items:center; gap:8px; margin-top:8px}
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:13px; color:var(--parch);
+  background:rgba(0,0,0,.4); border:1px solid #3a2e20; border-radius:3px; padding:2px 8px}
+.chip b{color:var(--gold-hi)}
+#p-block-chip{display:none}
+#p-block-chip.show{display:inline-flex}
+#p-status{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
+
+#energy-orb{position:absolute; left:1.5%; bottom:6%;
+  width:84px; height:84px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #f6e7b0, #c9a227 45%, #6e5410 80%, #3a2c08);
+  border:2px solid var(--gold-dim); box-shadow:0 0 24px rgba(201,162,39,.45), inset 0 0 18px rgba(0,0,0,.4);
+  display:flex; align-items:center; justify-content:center; flex-direction:column}
+#energy-orb .n{font-size:30px; color:#231a05; font-weight:bold; text-shadow:0 1px 0 rgba(255,255,255,.35)}
+#energy-orb .lbl{font-size:9px; letter-spacing:.14em; color:#3d2f0b}
+#energy-orb.spent{filter:grayscale(.7) brightness(.7)}
+
+#end-turn{position:absolute; right:1.5%; bottom:7%; padding:12px 30px; font-size:16px}
+#piles{position:absolute; right:1.5%; bottom:19%; display:flex; gap:8px}
+.pile{font-size:12px; color:var(--parch-dim); background:rgba(0,0,0,.5);
+  border:1px solid #33291c; border-radius:3px; padding:4px 10px; cursor:pointer}
+.pile b{color:var(--parch); font-size:14px}
+.pile:hover{border-color:var(--gold-dim); color:var(--parch)}
+
+/* hand */
+#hand{position:relative; height:27%; min-height:200px; display:flex; align-items:flex-end;
+  justify-content:center; padding-bottom:10px; z-index:5}
+
+/* ---------- card ---------- */
+.card{position:relative; width:132px; height:186px; margin:0 -14px; flex-shrink:0;
+  transition:transform .13s, margin .13s; transform-origin:bottom center; cursor:pointer; z-index:1}
+.card:hover{transform:translateY(-46px) scale(1.22); z-index:50; margin:0 26px}
+.card.selected{transform:translateY(-54px) scale(1.24); z-index:60; margin:0 30px}
+.card.selected .slab{box-shadow:0 0 0 2px var(--gold-hi), 0 0 26px rgba(240,217,140,.5)}
+.card.unaffordable{filter:grayscale(.65) brightness(.75)}
+.slab{position:absolute; inset:0; border-radius:8px; overflow:hidden;
+  background:linear-gradient(160deg,#efe9df,#cfc7b6 60%,#b8ae99);
+  border:1px solid #6e6552; box-shadow:0 6px 16px rgba(0,0,0,.65)}
+.slab .inner{position:absolute; inset:5px; border-radius:5px; overflow:hidden;
+  background:#151009; border:1px solid #000; display:flex; flex-direction:column}
+.card .glabel{position:absolute; top:0; left:0; right:0; height:26px; z-index:4;
+  display:flex; align-items:center; padding:0 7px; gap:6px;
+  background:linear-gradient(180deg,#f4efe4,#ddd5c2); border-bottom:1px solid #8c8168}
+.card .glabel .gnum{font-size:13px; font-weight:bold; color:#1c1812}
+.card .glabel .gname{font-size:7.5px; letter-spacing:.05em; color:#5c5442; text-transform:uppercase; line-height:1.05}
+.card .glabel .serif{margin-left:auto; font-size:7px; color:#8a7f63; letter-spacing:.08em}
+.card .art{position:relative; height:46%; margin-top:26px; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%, #241a12, #0c0806 75%)}
+.card .art .sil{position:absolute; inset:0}
+.card .cname{padding:3px 6px 0; text-align:center; font-size:12.5px; color:var(--gold-hi);
+  letter-spacing:.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.card .ctype{text-align:center; font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:#8d8168; padding-top:1px}
+.card .ctext{flex:1; padding:4px 8px; font-size:10.5px; line-height:1.3; text-align:center; color:#d8cdb2;
+  display:flex; align-items:center; justify-content:center}
+.card .ctext > span{display:inline}
+.card .ctext b{color:#f0d98c}
+.card .cost{position:absolute; top:20px; left:-2px; z-index:6; width:30px; height:30px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #f6e7b0, #c9a227 50%, #6e5410);
+  border:1px solid #4d3b0c; display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:bold; color:#231a05; box-shadow:0 2px 6px rgba(0,0,0,.6)}
+.card.t-attack .inner{background:linear-gradient(180deg,#1c100d,#120a08)}
+.card.t-attack .ctype{color:#b06a5c}
+.card.t-skill .inner{background:linear-gradient(180deg,#0d141c,#080d12)}
+.card.t-skill .ctype{color:#6c8cad}
+.card.t-power .inner{background:linear-gradient(180deg,#150d1c,#0c0812)}
+.card.t-power .ctype{color:#9a7cc0}
+
+/* wear overlays by grade tier */
+.card .wear{position:absolute; inset:0; z-index:5; pointer-events:none; border-radius:8px}
+.card.g-low .wear{background:
+  linear-gradient(23deg, transparent 42%, rgba(120,100,70,.28) 43%, transparent 44%),
+  linear-gradient(-67deg, transparent 60%, rgba(120,100,70,.22) 61%, transparent 62.5%),
+  linear-gradient(101deg, transparent 25%, rgba(90,75,55,.25) 26%, transparent 27%),
+  radial-gradient(ellipse at 8% 95%, rgba(70,55,35,.5), transparent 30%),
+  radial-gradient(ellipse at 94% 6%, rgba(70,55,35,.45), transparent 26%)}
+.card.g-low .slab{background:linear-gradient(160deg,#d9d0c0,#b3a890 60%,#96876f)}
+.card.g-low .glabel{background:linear-gradient(180deg,#ddd3bd,#c3b79c)}
+.card.g-mid .wear{background:
+  linear-gradient(31deg, transparent 55%, rgba(120,100,70,.13) 55.6%, transparent 56.2%),
+  radial-gradient(ellipse at 4% 97%, rgba(70,55,35,.22), transparent 18%)}
+.card.g-high .wear{background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.16) 42%, transparent 54%)}
+.card.g-high .slab{box-shadow:0 6px 16px rgba(0,0,0,.65), 0 0 12px rgba(240,217,140,.28)}
+.card.g-high .glabel{background:linear-gradient(180deg,#f7ecc4,#e4d089)}
+
+/* ---------- banners / overlays ---------- */
+#turn-banner{position:absolute; top:38%; left:0; right:0; text-align:center; pointer-events:none;
+  font-size:34px; letter-spacing:.28em; color:var(--gold-hi); opacity:0; text-transform:uppercase;
+  text-shadow:0 0 24px rgba(201,162,39,.6), 0 2px 2px #000; transition:opacity .3s}
+#combat-title{position:absolute; top:2.5%; left:0; right:0; text-align:center; pointer-events:none}
+#combat-title .fl{font-size:12px; letter-spacing:.3em; color:var(--parch-dim); text-transform:uppercase}
+#combat-title .nm{font-size:20px; letter-spacing:.12em; color:var(--gold); margin-top:2px}
+
+.overlay{position:absolute; inset:0; background:rgba(4,3,2,.82); z-index:80;
+  display:none; align-items:center; justify-content:center; flex-direction:column}
+.overlay.on{display:flex}
+.overlay .panel{background:linear-gradient(180deg,#1e1712,#120d09); border:1px solid var(--gold-dim);
+  border-radius:6px; padding:26px 34px; max-width:70%; max-height:80%; overflow:auto; text-align:center;
+  box-shadow:0 10px 50px rgba(0,0,0,.8)}
+.overlay h2{color:var(--gold-hi); font-size:26px; letter-spacing:.1em; margin-bottom:8px}
+.pile-list{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:14px 0; max-width:820px}
+.pile-list .mini{width:110px; height:155px; position:relative; transform:scale(1); margin:0}
+.pile-list .mini:hover{transform:scale(1.12); z-index:5}
+
+/* ---------- game over ---------- */
+#screen-gameover, #screen-victory{text-align:center}
+#screen-gameover.on, #screen-victory.on{display:flex; flex-direction:column; align-items:center; justify-content:center}
+#screen-gameover h1{font-size:44px; color:#a8352a; letter-spacing:.14em; text-shadow:0 0 30px rgba(168,53,42,.4)}
+#screen-victory h1{font-size:44px; color:var(--gold-hi); letter-spacing:.14em; text-shadow:0 0 30px rgba(201,162,39,.5)}
+.deathnote{color:var(--parch-dim); font-style:italic; margin:16px 0 24px; max-width:520px; line-height:1.6}
+
+/* ---------- map screen ---------- */
+#screen-map.on{display:flex; flex-direction:column; align-items:center}
+#map-head{display:flex; align-items:center; gap:18px; padding:16px 0 4px}
+#map-head .fl{font-size:12px; letter-spacing:.3em; color:var(--parch-dim); text-transform:uppercase}
+#map-head .nm{font-size:26px; letter-spacing:.12em; color:var(--gold-hi)}
+#map-chips{position:absolute; top:14px; right:2%; display:flex; gap:8px; align-items:center}
+#map-chips .chip{font-size:14px; padding:4px 12px}
+#btn-viewdeck{padding:5px 14px; font-size:12px}
+#map-wrap{position:relative; flex:1; width:min(760px,86%); margin-bottom:8px}
+#map-svg{position:absolute; inset:0; width:100%; height:100%}
+#map-svg line{stroke:rgba(201,162,39,.22); stroke-width:2; vector-effect:non-scaling-stroke}
+#map-svg line.walked{stroke:rgba(240,217,140,.6)}
+.mapnode{position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:19px; cursor:default;
+  background:radial-gradient(circle at 35% 30%, #3a2f1e, #1b1610 70%);
+  border:2px solid #4a3b20; color:#8d8168; box-shadow:0 3px 10px rgba(0,0,0,.6); z-index:2;
+  transition:transform .15s}
+.mapnode .nlbl{position:absolute; top:105%; left:50%; transform:translateX(-50%); font-size:9px;
+  letter-spacing:.1em; color:var(--parch-dim); white-space:nowrap; text-transform:uppercase; opacity:0;
+  transition:opacity .15s; pointer-events:none}
+.mapnode:hover .nlbl{opacity:1}
+.mapnode.reachable{cursor:pointer; border-color:var(--gold); color:var(--gold-hi);
+  animation:npulse 1.6s infinite}
+.mapnode.reachable:hover{transform:scale(1.25)}
+.mapnode.current{border-color:var(--gold-hi); color:var(--gold-hi);
+  box-shadow:0 0 18px rgba(240,217,140,.5)}
+.mapnode.done{opacity:.38}
+.mapnode.n-boss{width:58px; height:58px; margin:-29px 0 0 -29px; font-size:26px; border-width:3px}
+@keyframes npulse{0%,100%{box-shadow:0 0 6px rgba(201,162,39,.25)} 50%{box-shadow:0 0 20px rgba(201,162,39,.7)}}
+
+/* ---------- rest / event / transition screens ---------- */
+#screen-rest.on, #screen-event.on, #screen-transition.on{display:flex; align-items:center; justify-content:center}
+.story-panel{max-width:640px; text-align:center; background:linear-gradient(180deg,rgba(26,20,14,.94),rgba(13,10,7,.94));
+  border:1px solid var(--gold-dim); border-radius:6px; padding:38px 46px; box-shadow:0 12px 60px rgba(0,0,0,.8)}
+.story-panel h2{color:var(--gold-hi); font-size:26px; letter-spacing:.12em; margin-bottom:6px}
+.story-panel .body{color:var(--parch-dim); font-style:italic; line-height:1.65; margin:16px 0 24px; font-size:15px}
+.story-panel .choices{display:flex; flex-direction:column; gap:12px; align-items:center}
+.story-panel .choices .gbtn{min-width:340px; font-size:15px}
+.story-panel .choices .gbtn .sub{display:block; font-size:11.5px; color:var(--parch-dim); letter-spacing:.02em; margin-top:3px}
+
+/* ---------- curator screen ---------- */
+#screen-curator.on{display:flex; align-items:center; justify-content:center}
+#cur-head{display:flex; align-items:center; gap:16px; justify-content:center; margin-bottom:4px}
+#cur-portrait{border-radius:50%; border:2px solid var(--gold-dim);
+  background:radial-gradient(circle at 45% 35%, #241a12, #0c0806); box-shadow:0 0 16px rgba(0,0,0,.6)}
+#cur-shop{display:flex; gap:22px; justify-content:center; margin:16px 0 20px; min-height:40px}
+.shopitem{display:flex; flex-direction:column; align-items:center; gap:6px}
+.shopitem .card{margin:0; width:124px; height:175px}
+.shopitem .card:hover{transform:translateY(-8px) scale(1.1); margin:0}
+.shopitem .price{font-size:13px; color:var(--gold-hi); letter-spacing:.06em}
+.shopitem.sold .card{filter:grayscale(1) brightness(.5); pointer-events:none}
+.shopitem.unaffordable .card{filter:grayscale(.6) brightness(.7)}
+.shopitem.unaffordable .price{color:#8a6a5a}
+
+/* ---------- reward screen ---------- */
+#screen-reward.on{display:flex; align-items:center; justify-content:center}
+.reward-wrap{text-align:center; max-width:760px}
+#reward-cards{display:flex; gap:34px; justify-content:center; margin:30px 0 26px}
+#reward-cards .card{margin:0; width:150px; height:212px}
+#reward-cards .card:hover{transform:translateY(-10px) scale(1.12); margin:0}
+#reward-cards .card:hover .slab{box-shadow:0 0 0 2px var(--gold-hi), 0 0 30px rgba(240,217,140,.45)}
+
+/* quirk (qualified) styling */
+.card.qualified .glabel{background:linear-gradient(180deg,#9fbf8a,#7da368)}
+.card.qualified .glabel .gnum, .card.qualified .glabel .gname{color:#1d2a16}
+.card .quirkline{font-size:8.5px; color:#b7d49e; font-style:italic; text-align:center; padding:1px 6px 3px}
+
+/* ---------- ledger ---------- */
+#screen-ledger.on{display:flex; align-items:center; justify-content:center}
+.ledger-wrap{max-width:880px; max-height:90%; overflow:auto; padding:26px 40px;
+  background:linear-gradient(180deg,rgba(26,20,14,.95),rgba(13,10,7,.95));
+  border:1px solid var(--gold-dim); border-radius:6px; box-shadow:0 12px 60px rgba(0,0,0,.8)}
+#ledger-stats{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px}
+#ledger-stats .stat{background:rgba(0,0,0,.4); border:1px solid #33291c; border-radius:4px;
+  padding:8px 18px; text-align:center; min-width:110px}
+#ledger-stats .stat .v{font-size:22px; color:var(--gold-hi)}
+#ledger-stats .stat .k{font-size:10px; letter-spacing:.18em; color:var(--parch-dim); text-transform:uppercase; margin-top:2px}
+#ledger-census{display:grid; grid-template-columns:repeat(5,1fr); gap:10px}
+.census-cell{display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.35);
+  border:1px solid #2c2418; border-radius:4px; padding:6px 9px}
+.census-cell canvas{border-radius:50%; border:1px solid #3a2e20; flex-shrink:0}
+.census-cell .cn{font-size:12px; color:var(--parch); line-height:1.2}
+.census-cell .cd{font-size:10px; color:var(--parch-dim)}
+.census-cell .cd b{color:var(--gold-hi)}
+.census-cell.locked{opacity:.4; font-style:italic}
+.census-cell .gembadge{margin-left:auto; font-size:10px; color:#1c1812; background:linear-gradient(180deg,#f7ecc4,#e0c878);
+  border-radius:3px; padding:1px 5px; font-weight:bold}
+
+/* discovery ribbon on reward cards */
+.card .discovery{position:absolute; top:34px; right:-6px; z-index:7; font-size:8px; letter-spacing:.1em;
+  background:linear-gradient(180deg,#8c2f24,#6e1f16); color:#f5e0c8; padding:2px 8px;
+  border:1px solid #b0563e; border-radius:2px; transform:rotate(6deg); box-shadow:0 2px 8px rgba(0,0,0,.6)}
+
+/* status icons */
+.sticon{display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:1px 6px;
+  border-radius:3px; background:rgba(0,0,0,.55); border:1px solid #3a2e20}
+.sticon.buff{color:#a9d08e; border-color:#3e5c33}
+.sticon.debuff{color:#d08e8e; border-color:#5c3333}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+
+  <!-- TITLE -->
+  <div class="screen" id="screen-title">
+    <canvas id="title-candles"></canvas>
+    <div class="small" style="letter-spacing:.35em; color:var(--gold-dim)">A LE BRUN LEGACY</div>
+    <h1>VAULT OF MIRRORS</h1>
+    <div class="sub">Beneath the Hall of Mirrors, the First Appearances wait in their frames.</div>
+    <div class="goldrule"></div>
+    <div class="premise">Charles Le Brun did not merely paint the ceiling of Versailles. He bound guardians
+      into enchanted mirror-frames — each sealed at its First Appearance — to protect France.
+      You have inherited the vault key. Descend.</div>
+    <div style="display:flex; gap:14px; margin-top:18px">
+      <button class="gbtn" id="btn-continue" style="display:none">CONTINUE THE DESCENT</button>
+      <button class="gbtn" id="btn-newrun">DESCEND INTO THE VAULT</button>
+      <button class="gbtn" id="btn-ledger">RESTORATION LEDGER</button>
+    </div>
+    <div id="sig-row" style="display:none; margin-top:14px">
+      <button class="gbtn" id="btn-sig" style="font-size:13px; padding:7px 18px"></button>
+    </div>
+    <div class="small" style="margin-top:26px; opacity:.7" id="title-foot">The vault remembers nothing yet.</div>
+  </div>
+
+  <!-- RESTORATION LEDGER -->
+  <div class="screen" id="screen-ledger">
+    <div class="ledger-wrap">
+      <h2 style="color:var(--gold-hi); letter-spacing:.16em; text-align:center">THE RESTORATION LEDGER</h2>
+      <div class="goldrule"></div>
+      <div id="ledger-stats"></div>
+      <div class="small" style="text-align:center; letter-spacing:.22em; color:var(--gold-dim); margin:16px 0 10px">CENSUS OF FIRST APPEARANCES</div>
+      <div id="ledger-census"></div>
+      <div style="text-align:center; margin-top:18px"><button class="gbtn" id="btn-ledger-back">CLOSE THE LEDGER</button></div>
+    </div>
+  </div>
+
+  <!-- COMBAT -->
+  <div class="screen" id="screen-combat">
+    <canvas id="combat-canvas"></canvas>
+    <div id="combat-title"><div class="fl" id="ct-floor"></div><div class="nm" id="ct-name"></div></div>
+    <div id="turn-banner"></div>
+    <div id="combat-ui">
+      <div id="hud">
+        <div class="plate">
+          <div class="pname" id="p-name">The Descendant</div>
+          <div class="bar"><div class="fill" id="p-hp-fill"></div><div class="txt" id="p-hp-txt"></div></div>
+          <div class="row">
+            <span class="chip" id="p-block-chip">🛡 <b id="p-block">0</b></span>
+            <span class="chip" title="Restoration">✦ <b id="p-resto">0</b></span>
+          </div>
+          <div id="p-status"></div>
+        </div>
+      </div>
+      <div id="energy-orb"><div class="n" id="energy-n">3</div><div class="lbl">ÉNERGIE</div></div>
+      <div id="piles">
+        <div class="pile" id="pile-draw">Draw <b id="n-draw">0</b></div>
+        <div class="pile" id="pile-discard">Discard <b id="n-discard">0</b></div>
+        <div class="pile" id="pile-exhaust" style="display:none">Exhaust <b id="n-exhaust">0</b></div>
+      </div>
+      <button class="gbtn" id="end-turn">END TURN</button>
+      <div id="hand"></div>
+    </div>
+  </div>
+
+  <!-- VAULT MAP -->
+  <div class="screen" id="screen-map">
+    <div id="map-head">
+      <div>
+        <div class="fl" id="map-floor-label"></div>
+        <div class="nm" id="map-floor-name"></div>
+      </div>
+    </div>
+    <div id="map-chips">
+      <span class="chip">❤ <b id="map-hp"></b></span>
+      <span class="chip">✦ <b id="map-resto"></b></span>
+      <button class="gbtn" id="btn-viewdeck">DECK <span id="map-decksize"></span></button>
+    </div>
+    <div id="map-wrap">
+      <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <!-- REST -->
+  <div class="screen" id="screen-rest">
+    <div class="story-panel">
+      <h2>A QUIET ALCOVE</h2>
+      <div class="goldrule"></div>
+      <div class="body">A cold hearth, a chaise longue under a dust sheet, and a worktable still laid
+        with Le Brun’s restoration tools. The mirrors here are dark and calm.</div>
+      <div class="choices">
+        <button class="gbtn" id="btn-rest-heal">REST<span class="sub" id="rest-heal-sub"></span></button>
+        <button class="gbtn" id="btn-rest-polish">RESTORE A CARD<span class="sub">Polish one First Appearance up a grade step</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENT -->
+  <div class="screen" id="screen-event">
+    <div class="story-panel">
+      <h2 id="event-title"></h2>
+      <div class="goldrule"></div>
+      <div class="body" id="event-body"></div>
+      <div class="choices" id="event-choices"></div>
+    </div>
+  </div>
+
+  <!-- CURATOR -->
+  <div class="screen" id="screen-curator">
+    <div class="story-panel" style="max-width:780px">
+      <div id="cur-head">
+        <canvas id="cur-portrait" width="76" height="76"></canvas>
+        <div style="text-align:left">
+          <h2 id="cur-name" style="margin:0"></h2>
+          <div class="small" id="cur-tagline" style="font-style:italic"></div>
+        </div>
+      </div>
+      <div class="body" id="cur-greet"></div>
+      <div class="body" id="cur-result" style="color:var(--gold-hi); display:none"></div>
+      <div class="choices" id="cur-services" style="margin-bottom:18px"></div>
+      <div class="small" style="letter-spacing:.22em; color:var(--gold-dim)">FIRST APPEARANCES — PRICED TO GRADE</div>
+      <div id="cur-shop"></div>
+      <button class="gbtn" id="btn-cur-leave">TAKE YOUR LEAVE</button>
+    </div>
+  </div>
+
+  <!-- FLOOR TRANSITION -->
+  <div class="screen" id="screen-transition">
+    <div class="story-panel">
+      <h2 id="trans-title"></h2>
+      <div class="goldrule"></div>
+      <div class="body" id="trans-body"></div>
+      <div class="choices"><button class="gbtn" id="btn-trans-go">DESCEND</button></div>
+    </div>
+  </div>
+
+  <!-- REWARD -->
+  <div class="screen" id="screen-reward">
+    <div class="reward-wrap">
+      <h2 style="color:var(--gold-hi); letter-spacing:.14em">THE FRAMES FALL SILENT</h2>
+      <div class="goldrule"></div>
+      <div class="small" id="reward-resto" style="font-size:15px"></div>
+      <div class="small" style="margin-top:14px; letter-spacing:.18em; color:var(--gold-dim)">CHOOSE ONE FIRST APPEARANCE TO RESTORE</div>
+      <div id="reward-cards"></div>
+      <button class="gbtn" id="btn-reward-skip">LEAVE THEM BURIED&nbsp;&nbsp;<span class="small">+6 ✦</span></button>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="screen" id="screen-gameover">
+    <h1>SHATTERED</h1>
+    <div class="goldrule"></div>
+    <div class="deathnote" id="death-note"></div>
+    <button class="gbtn" id="btn-go-title">RETURN TO THE SURFACE</button>
+  </div>
+
+  <!-- VICTORY (placeholder until full run exists) -->
+  <div class="screen" id="screen-victory">
+    <h1>THE VAULT YIELDS</h1>
+    <div class="goldrule"></div>
+    <div class="deathnote" id="victory-note"></div>
+    <button class="gbtn" id="btn-vic-title">RETURN TO THE SURFACE</button>
+  </div>
+
+  <!-- generic overlay (pile viewer etc.) -->
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <h2 id="ov-title"></h2>
+      <div id="ov-body"></div>
+      <button class="gbtn" id="ov-close">CLOSE</button>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   VAULT OF MIRRORS — A Le Brun Legacy
+   Single-file roguelike deckbuilder.
+   Phase 1: core combat engine + the five basic guardians (One–Five).
+   ===================================================================== */
+
+/* ---------------- utilities ---------------- */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let _uid = 1; const uid = () => _uid++;
+
+/* seeded rng (mulberry32) — one stream per run for reproducibility */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296; } }
+let rng = mulberry32(Date.now() & 0xffffffff);
+const rnd   = (a,b) => a + rng()*(b-a);
+const rndi  = (a,b) => Math.floor(rnd(a, b+1));
+const pick  = arr => arr[Math.floor(rng()*arr.length)];
+const shuffle = arr => { const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+/* storage wrapper: localStorage when available, in-memory fallback */
+const Store = (() => {
+  let mem = {};
+  let ok = false;
+  try { localStorage.setItem('__vom_t','1'); localStorage.removeItem('__vom_t'); ok = true; } catch(e){}
+  return {
+    get(k, d){ try { const v = ok ? localStorage.getItem(k) : mem[k]; return v==null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set(k, v){ try { const s = JSON.stringify(v); if (ok) localStorage.setItem(k, s); else mem[k]=s; } catch(e){} }
+  };
+})();
+
+/* ---------------- meta-progression (persists between runs) ---------------- */
+const META_KEY = 'vom_meta', RUN_KEY = 'vom_run';
+/* the draft pool starts small; the rest are discovered mid-run, permanently */
+const INITIAL_UNLOCKS = ['spider','cadet','veil','nathan','silverflash','tifa','cloud','scarletwitch'];
+let META = Store.get(META_KEY, null) || {
+  runs: 0, wins: 0, sigWins: 0, bestFloor: 0, fastestClearMs: null,
+  census: {},                    // defId -> { count, bestGrade }
+  unlocked: [...INITIAL_UNLOCKS],
+};
+function saveMeta(){ Store.set(META_KEY, META); }
+function recordCensus(card){
+  const c = META.census[card.defId] || (META.census[card.defId] = { count: 0, bestGrade: 0 });
+  c.count++;
+  c.bestGrade = Math.max(c.bestGrade, card.grade);
+  saveMeta();
+}
+function unlockChar(defId){
+  if (!META.unlocked.includes(defId)){ META.unlocked.push(defId); saveMeta(); }
+}
+
+/* ---------------- grading ---------------- */
+const GRADE_STEPS = [2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.2,9.4,9.6,9.8];
+function gradeName(g){
+  if (g >= 9.8) return 'GEM MINT';
+  if (g >= 9.4) return 'NEAR MINT+';
+  if (g >= 9.0) return 'NEAR MINT';
+  if (g >= 8.0) return 'VERY FINE';
+  if (g >= 7.0) return 'FINE / VF';
+  if (g >= 6.0) return 'FINE';
+  if (g >= 5.0) return 'VG / FINE';
+  if (g >= 4.0) return 'VERY GOOD';
+  if (g >= 3.0) return 'GOOD';
+  return 'FAIR';
+}
+function gradeTier(g){ return g >= 8.0 ? 'high' : (g >= 4.0 ? 'mid' : 'low'); }
+/* power multiplier: grade 5.0 ≈ baseline, 9.8 hits ~1.24x, 2.5 ~0.95x */
+function gradeMult(g){ return 0.85 + 0.04 * g; }
+
+/* ---------------- character registry ---------------- */
+/* Portraits: drop image files into assets/portraits/<id>.png and they will be
+   used automatically; otherwise a procedural silhouette placeholder renders. */
+const CHARS = {
+  one:   { name:'One',   hue:44,  sil:'knight' },
+  two:   { name:'Two',   hue:205, sil:'shield' },
+  three: { name:'Three', hue:8,   sil:'rogue'  },
+  four:  { name:'Four',  hue:130, sil:'shield' },
+  five:  { name:'Five',  hue:275, sil:'brute'  },
+  spider:       { name:'Spider',        hue:355, sil:'rogue'  },
+  deadpool:     { name:'Deadpool',      hue:0,   sil:'rogue'  },
+  scarletwitch: { name:'Scarlet Witch', hue:340, sil:'wraith' },
+  cloud:        { name:'Cloud',         hue:48,  sil:'knight' },
+  tifa:         { name:'Tifa',          hue:15,  sil:'rogue'  },
+  nathan:       { name:'Nathan',        hue:190, sil:'knight' },
+  cadet:        { name:'Cadet',         hue:210, sil:'knight' },
+  magnolia:     { name:'Magnolia',      hue:315, sil:'wraith' },
+  enforcer:     { name:'Enforcer',      hue:30,  sil:'brute'  },
+  veil:         { name:'Veil',          hue:265, sil:'wraith' },
+  spiderdemon:  { name:'Spiderdemon',   hue:12,  sil:'brute'  },
+  tornada:      { name:'Tornada',       hue:180, sil:'wraith' },
+  darkhold:     { name:'Darkhold',      hue:290, sil:'wraith' },
+  silverflash:  { name:'Silverflash',   hue:220, sil:'rogue'  },
+  ant:          { name:'Ant',           hue:95,  sil:'knight' },
+  zorr:         { name:'Zorr',          hue:18,  sil:'revenant' },
+  /* curators — the life-sim six, moonlighting between floors */
+  nico:    { name:'Nico',    hue:150, sil:'rogue'  },
+  jorge:   { name:'Jorge',   hue:25,  sil:'brute'  },
+  sophia:  { name:'Sophia',  hue:210, sil:'wraith' },
+  gabby:   { name:'Gabby',   hue:330, sil:'rogue'  },
+  mateo:   { name:'Mateo',   hue:262, sil:'knight' },
+  laurent: { name:'Laurent', hue:55,  sil:'shield' },
+};
+const portraitCache = {};   // id -> Image or 'missing'
+function getPortrait(id){
+  if (portraitCache[id]) return portraitCache[id];
+  const img = new Image();
+  img.onload  = () => { portraitCache[id] = img; };
+  img.onerror = () => { portraitCache[id] = 'missing'; };
+  img.src = 'assets/portraits/' + id + '.png';
+  portraitCache[id] = 'missing'; // until it loads
+  return 'missing';
+}
+
+/* procedural silhouette painter (placeholder art) */
+function drawSilhouette(ctx, x, y, w, h, char, alpha){
+  const hue = char.hue;
+  ctx.save();
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  const g = ctx.createLinearGradient(x, y, x, y+h);
+  g.addColorStop(0, `hsl(${hue},46%,52%)`);
+  g.addColorStop(1, `hsl(${hue},40%,22%)`);
+  ctx.fillStyle = g;
+  const cx = x + w/2;
+  const headR = w * 0.16;
+  ctx.beginPath();
+  switch(char.sil){
+    case 'brute':
+      ctx.arc(cx, y + h*0.24, headR*1.15, 0, 7);
+      ctx.moveTo(cx - w*0.44, y + h);
+      ctx.quadraticCurveTo(cx - w*0.48, y + h*0.36, cx, y + h*0.34);
+      ctx.quadraticCurveTo(cx + w*0.48, y + h*0.36, cx + w*0.44, y + h);
+      break;
+    case 'wraith':
+      ctx.arc(cx, y + h*0.22, headR*0.9, 0, 7);
+      ctx.moveTo(cx - w*0.3, y + h);
+      ctx.quadraticCurveTo(cx - w*0.42, y + h*0.4, cx, y + h*0.32);
+      ctx.quadraticCurveTo(cx + w*0.42, y + h*0.4, cx + w*0.34, y + h*0.7);
+      ctx.quadraticCurveTo(cx + w*0.2, y + h*0.85, cx + w*0.3, y + h);
+      break;
+    case 'rogue':
+      ctx.arc(cx + w*0.04, y + h*0.22, headR*0.85, 0, 7);
+      ctx.moveTo(cx - w*0.3, y + h);
+      ctx.quadraticCurveTo(cx - w*0.36, y + h*0.42, cx - w*0.05, y + h*0.34);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.42, cx + w*0.26, y + h);
+      break;
+    case 'shield':
+      ctx.arc(cx, y + h*0.2, headR*0.95, 0, 7);
+      ctx.moveTo(cx - w*0.38, y + h*0.42);
+      ctx.lineTo(cx + w*0.38, y + h*0.42);
+      ctx.lineTo(cx + w*0.3, y + h);
+      ctx.lineTo(cx - w*0.3, y + h);
+      ctx.closePath();
+      ctx.moveTo(cx - w*0.34, y + h);
+      ctx.quadraticCurveTo(cx - w*0.4, y + h*0.4, cx, y + h*0.32);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.4, cx + w*0.34, y + h);
+      break;
+    case 'revenant':
+      /* hulking ashen figure, warhammer at rest */
+      ctx.arc(cx - w*0.06, y + h*0.18, headR*1.05, 0, 7);
+      ctx.moveTo(cx - w*0.48, y + h);
+      ctx.quadraticCurveTo(cx - w*0.52, y + h*0.3, cx - w*0.06, y + h*0.27);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.3, cx + w*0.34, y + h);
+      /* hammer haft */
+      ctx.rect(cx + w*0.3, y + h*0.12, w*0.05, h*0.82);
+      /* hammer head */
+      ctx.rect(cx + w*0.18, y + h*0.04, w*0.3, h*0.14);
+      break;
+    default: /* knight */
+      ctx.arc(cx, y + h*0.21, headR, 0, 7);
+      ctx.moveTo(cx - w*0.34, y + h);
+      ctx.quadraticCurveTo(cx - w*0.4, y + h*0.38, cx, y + h*0.33);
+      ctx.quadraticCurveTo(cx + w*0.4, y + h*0.38, cx + w*0.34, y + h);
+  }
+  ctx.fill();
+  /* ashen cracks on the revenant */
+  if (char.sil === 'revenant'){
+    ctx.strokeStyle = `hsla(${hue},70%,75%,.55)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - w*0.2, y + h*0.42); ctx.lineTo(cx - w*0.08, y + h*0.55); ctx.lineTo(cx - w*0.18, y + h*0.72);
+    ctx.moveTo(cx + w*0.1, y + h*0.38); ctx.lineTo(cx + w*0.02, y + h*0.52);
+    ctx.moveTo(cx - w*0.04, y + h*0.16); ctx.lineTo(cx - w*0.1, y + h*0.22);
+    ctx.stroke();
+  }
+  /* eye glow */
+  ctx.fillStyle = `hsla(${hue},90%,80%,.9)`;
+  ctx.beginPath();
+  ctx.arc(cx - headR*0.36, y + h*0.21, 1.6, 0, 7);
+  ctx.arc(cx + headR*0.36, y + h*0.21, 1.6, 0, 7);
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ---------------- quirks (low-grade damage traits) ---------------- */
+/* CGC-style "qualified" cards: damaged copies with a twist. */
+const QUIRKS = {
+  brittle: { label:'Brittle', mult:1.25,
+    desc:'+25% power. 25% chance to Exhaust when played.' },
+  foxed:   { label:'Foxed',   mult:1.20,
+    desc:'+20% power. First play each combat costs 1 more.' },
+  haunted: { label:'Haunted', mult:1.30,
+    desc:'+30% power. Take 1 damage when played.' },
+  faded:   { label:'Faded',   mult:0.90,
+    desc:'−10% power. It has seen better centuries.' },
+};
+
+/* weighted grade drop: mid grades common, gems rare */
+function rollGrade(){
+  const r = rng();
+  if (r < 0.20) return pick([2.5, 3.0, 3.5]);                            // low
+  if (r < 0.78) return pick([4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5]);   // mid
+  if (r < 0.95) return pick([8.0, 8.5, 9.0]);                            // high
+  return pick([9.2, 9.4, 9.6, 9.8]);                                     // gem
+}
+
+/* high-grade slabs demand Restoration upkeep at each floor transition */
+function upkeepCost(card){
+  return card.grade >= 8.0 ? Math.ceil((card.grade - 7.5) * 4) : 0;
+}
+/* unpaid upkeep wears the card down one grade step */
+function degradeCard(card){
+  const i = GRADE_STEPS.indexOf(card.grade);
+  if (i > 0) card.grade = GRADE_STEPS[i-1];
+  if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
+}
+
+/* ---------------- card definitions ---------------- */
+/* sv(base, card) — grade- and quirk-scaled value; text() must mirror play() */
+function sv(base, card){
+  let m = gradeMult(card.grade);
+  if (card.quirk) m *= QUIRKS[card.quirk].mult;
+  return Math.max(1, Math.round(base * m));
+}
+
+const CARDS = {
+  one: {
+    char:'one', title:'First of the Numbered', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(6,c)}</b> damage.`,
+    play: (c, api, t) => api.attack(t, sv(6,c)),
+  },
+  two: {
+    char:'two', title:'Second of the Numbered', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${sv(6,c)}</b> Block.`,
+    play: (c, api) => api.block(sv(6,c)),
+  },
+  three: {
+    char:'three', title:'Third of the Numbered', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(3,c)}</b> damage twice.`,
+    play: (c, api, t) => { api.attack(t, sv(3,c)); api.attack(t, sv(3,c)); },
+  },
+  four: {
+    char:'four', title:'Fourth of the Numbered', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${sv(4,c)}</b> Block. Draw 1 card.`,
+    play: (c, api) => { api.block(sv(4,c)); api.draw(1); },
+  },
+  five: {
+    char:'five', title:'Fifth of the Numbered', type:'attack', cost:2, target:'enemy',
+    text: c => `Deal <b>${sv(11,c)}</b> damage. Apply 1 <b>Weak</b>.`,
+    play: (c, api, t) => { api.attack(t, sv(11,c)); api.status(t, 'weak', 1); },
+  },
+
+  /* ---- the standard roster: First Appearances found in the vault ---- */
+  spider: {
+    char:'spider', title:'The Web-Bound', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(5,c)}</b> damage. Apply 1 <b>Weak</b>.`,
+    play: (c, api, t) => { api.attack(t, sv(5,c)); api.status(t, 'weak', 1); },
+  },
+  deadpool: {
+    char:'deadpool', title:'The Unkillable Jest', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(10,c)}</b> damage. Take 3 damage.`,
+    play: (c, api, t) => { api.attack(t, sv(10,c)); api.selfDamage(3); },
+  },
+  scarletwitch: {
+    char:'scarletwitch', title:'The Crimson Hex', type:'skill', cost:1, target:'enemy',
+    text: c => `Apply <b>${Math.max(2, Math.round(sv(2,c)))}</b> Vulnerable.`,
+    play: (c, api, t) => api.status(t, 'vuln', Math.max(2, Math.round(sv(2,c)))),
+  },
+  cloud: {
+    char:'cloud', title:'The Buster Blade', type:'attack', cost:2, target:'enemy',
+    text: c => `Deal <b>${sv(16,c)}</b> damage.`,
+    play: (c, api, t) => api.attack(t, sv(16,c)),
+  },
+  tifa: {
+    char:'tifa', title:'The Seventh Fist', type:'attack', cost:2, target:'enemy',
+    text: c => `Deal <b>${sv(4,c)}</b> damage 3 times.`,
+    play: (c, api, t) => { for (let i=0;i<3;i++) api.attack(t, sv(4,c)); },
+  },
+  nathan: {
+    char:'nathan', title:'The Fortune Hunter', type:'skill', cost:1, target:'self',
+    text: c => `Draw <b>2</b> cards. Gain <b>${sv(2,c)}</b> Block.`,
+    play: (c, api) => { api.draw(2); api.block(sv(2,c)); },
+  },
+  cadet: {
+    char:'cadet', title:'The Palace Guard', type:'attack', cost:1, target:'enemy',
+    text: c => `Deal <b>${sv(4,c)}</b> damage. Gain <b>${sv(3,c)}</b> Block.`,
+    play: (c, api, t) => { api.attack(t, sv(4,c)); api.block(sv(3,c)); },
+  },
+  magnolia: {
+    char:'magnolia', title:'The Blooming Grace', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${Math.max(2, Math.round(sv(3,c)))}</b> Regen.`,
+    play: (c, api) => api.statusSelf('regen', Math.max(2, Math.round(sv(3,c)))),
+  },
+  enforcer: {
+    char:'enforcer', title:'The Iron Warrant', type:'skill', cost:2, target:'self',
+    text: c => `Gain <b>${sv(8,c)}</b> Block and <b>${Math.max(2, Math.round(sv(2,c)))}</b> Thorns.`,
+    play: (c, api) => { api.block(sv(8,c)); api.statusSelf('thorns', Math.max(2, Math.round(sv(2,c)))); },
+  },
+  veil: {
+    char:'veil', title:'The Umbral Shroud', type:'skill', cost:1, target:'self',
+    text: c => `Gain <b>${sv(8,c)}</b> Block.`,
+    play: (c, api) => api.block(sv(8,c)),
+  },
+  spiderdemon: {
+    char:'spiderdemon', title:'The Hellmouth', type:'attack', cost:3, target:'all',
+    text: c => `Deal <b>${sv(13,c)}</b> damage to ALL enemies.`,
+    play: (c, api) => api.attackAll(sv(13,c)),
+  },
+  tornada: {
+    char:'tornada', title:'The Turning Sky', type:'attack', cost:2, target:'all',
+    text: c => `Deal <b>${sv(8,c)}</b> damage to ALL enemies.`,
+    play: (c, api) => api.attackAll(sv(8,c)),
+  },
+  darkhold: {
+    char:'darkhold', title:'The Book of the Damned', type:'power', cost:1, target:'self', exhausts:true,
+    text: c => `Gain <b>${Math.max(2, Math.round(sv(2,c)))}</b> Strength. Take 2 damage. Exhaust.`,
+    play: (c, api) => { api.statusSelf('strength', Math.max(2, Math.round(sv(2,c)))); api.selfDamage(2); },
+  },
+  silverflash: {
+    char:'silverflash', title:'The Quicksilver Streak', type:'attack', cost:0, target:'enemy',
+    text: c => `Deal <b>${sv(3,c)}</b> damage. Draw 1 card.`,
+    play: (c, api, t) => { api.attack(t, sv(3,c)); api.draw(1); },
+  },
+  ant: {
+    char:'ant', title:'The Tireless Column', type:'attack', cost:1, target:'enemy',
+    text: c => {
+      const bonus = (cb() && cb().playCounts ? (cb().playCounts[c.uid]||0) : 0) * 2;
+      return `Deal <b>${sv(4,c) + bonus}</b> damage. Grows +2 each play this combat.`;
+    },
+    play: (c, api, t) => {
+      const bonus = ((cb().playCounts[c.uid] || 1) - 1) * 2; /* count includes this play */
+      api.attack(t, sv(4,c) + bonus);
+    },
+  },
+};
+
+/* draft pool for drops/shops (the Numbered are starter chaff, not drops) */
+const DROP_POOL = ['spider','deadpool','scarletwitch','cloud','tifa','nathan','cadet',
+                   'magnolia','enforcer','veil','spiderdemon','tornada','darkhold','silverflash','ant'];
+
+function makeCard(defId, grade, quirk){
+  const card = { uid: uid(), defId, grade: grade != null ? grade : 5.0, quirk: quirk || null };
+  if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
+  return card;
+}
+function makeDrop(){ return makeCard(pick(META.unlocked), rollGrade()); }
+/* every acquisition is logged in the census registry */
+function addCardToDeck(card){
+  G.run.deck.push(card);
+  recordCensus(card);
+}
+function cardDef(c){ return CARDS[c.defId]; }
+function cardName(c){ return CHARS[cardDef(c).char].name; }
+function cardCost(c){
+  let cost = cardDef(c).cost;
+  /* Foxed: first play each combat costs 1 more */
+  const combat = cb();
+  if (c.quirk === 'foxed' && combat && combat.playCounts && !combat.playCounts[c.uid]) cost += 1;
+  return cost;
+}
+
+/* ---------------- statuses ---------------- */
+const STATUS_META = {
+  strength: { label:'Str',   icon:'⚔',  buff:true,  desc:'Deals +N damage per hit.' },
+  regen:    { label:'Regen', icon:'❦',  buff:true,  desc:'Heals N at turn start, then reduces by 1.' },
+  thorns:   { label:'Thorns',icon:'❈',  buff:true,  desc:'Attackers take N damage.' },
+  weak:     { label:'Weak',  icon:'↓',  buff:false, desc:'Deals 25% less attack damage. N turns.' },
+  vuln:     { label:'Vuln',  icon:'◎',  buff:false, desc:'Takes 50% more attack damage. N turns.' },
+  frail:    { label:'Frail', icon:'✂',  buff:false, desc:'Gains 25% less Block. N turns.' },
+};
+
+/* ---------------- enemy definitions ---------------- */
+/* Enemies are mirror-corrupted duplicates of vault guardians. */
+const ENEMIES = {
+  m_cadet: {
+    char:'cadet', name:'Mirror Cadet', hp:[24,28],
+    ai(e, turn){
+      if (turn % 3 === 2) return { type:'block', block: 6, label:'Parade Guard' };
+      return { type:'attack', dmg: 6 + e.tier*2, times:1, label:'Drill Thrust' };
+    }
+  },
+  m_spider: {
+    char:'spider', name:'Mirror Spider', hp:[20,24],
+    ai(e, turn){
+      if (turn % 4 === 1) return { type:'debuff', status:'weak', n:2, label:'Silver Web' };
+      return { type:'attack', dmg: 4 + e.tier*2, times:2, label:'Twin Fangs' };
+    }
+  },
+  m_veil: {
+    char:'veil', name:'Mirror Veil', hp:[30,34],
+    ai(e, turn){
+      if (turn === 1) return { type:'buff', status:'strength', n:2, label:'Gathering Gloom' };
+      if (turn % 3 === 0) return { type:'attack_block', dmg: 5 + e.tier*2, block: 5, label:'Shroud Lash' };
+      return { type:'attack', dmg: 8 + e.tier*2, times:1, label:'Umbral Cut' };
+    }
+  },
+  m_enforcer: {
+    char:'enforcer', name:'Mirror Enforcer', hp:[38,44],
+    ai(e, turn){
+      if (turn % 3 === 1) return { type:'buff', status:'strength', n:1, label:'Gilded Fury' };
+      return { type:'attack', dmg: 9 + e.tier*3, times:1, label:'Warrant of Iron' };
+    }
+  },
+  m_silverflash: {
+    char:'silverflash', name:'Mirror Silverflash', hp:[14,17],
+    ai(e, turn){
+      return { type:'attack', dmg: 3 + e.tier, times: 3, label:'Quicksilver Flurry' };
+    }
+  },
+  m_tifa: {
+    char:'tifa', name:'Mirror Tifa', hp:[26,30],
+    ai(e, turn){
+      if (turn % 4 === 3) return { type:'block', block: 8, label:'Guard Stance' };
+      return { type:'attack', dmg: 4 + e.tier*2, times: 2, label:'Twin Palms' };
+    }
+  },
+  m_cloud: {
+    char:'cloud', name:'Mirror Cloud', hp:[34,38],
+    ai(e, turn){
+      if (turn % 3 === 0) return { type:'buff', status:'strength', n:2, label:'Limit Charge' };
+      return { type:'attack', dmg: 11 + e.tier*3, times:1, label:'Buster Arc' };
+    }
+  },
+  m_magnolia: {
+    char:'magnolia', name:'Mirror Magnolia', hp:[28,32],
+    ai(e, turn){
+      if (turn % 3 === 1) return { type:'buff', status:'regen', n:3, label:'Night Bloom' };
+      return { type:'attack', dmg: 6 + e.tier*2, times:1, label:'Thorned Kiss' };
+    }
+  },
+  m_darkhold: {
+    char:'darkhold', name:'Mirror Darkhold', hp:[30,36],
+    ai(e, turn){
+      if (turn % 3 === 1) return { type:'debuff', status:'frail', n:2, label:'Withering Verse' };
+      if (turn % 3 === 2) return { type:'debuff', status:'vuln', n:2, label:'Marked Page' };
+      return { type:'attack', dmg: 7 + e.tier*2, times:1, label:'Ink Lash' };
+    }
+  },
+  m_tornada: {
+    char:'tornada', name:'Mirror Tornada', hp:[32,36],
+    ai(e, turn){
+      if (turn % 4 === 2) return { type:'attack_block', dmg: 6 + e.tier*2, block: 6, label:'Eye of the Storm' };
+      return { type:'attack', dmg: 8 + e.tier*2, times:1, label:'Shear Wind' };
+    }
+  },
+  m_spiderdemon: {
+    char:'spiderdemon', name:'Mirror Spiderdemon', hp:[52,60],
+    ai(e, turn){
+      if (turn === 1) return { type:'buff', status:'thorns', n:3, label:'Chitin Bristle' };
+      if (turn % 3 === 0) return { type:'attack', dmg: 5 + e.tier*2, times:3, label:'Leg Barrage' };
+      return { type:'attack', dmg: 12 + e.tier*3, times:1, label:'Hellmaw Bite' };
+    }
+  },
+  /* Zorr — the corrupted revenant. Meets you at every floor's seal,
+     stronger each time, until the true confrontation in the Hall. */
+  zorr: {
+    char:'zorr', name:'Zorr', hp:[58,64], boss:true,
+    ai(e, turn){
+      const T = e.tier;
+      const enraged = e.hp < e.maxHp * 0.5;
+      if (turn === 1) return { type:'buff', status:'strength', n: 1 + Math.floor(T/2), label:'Ash Mantle' };
+      if (enraged){
+        if (turn % 3 === 0) return { type:'attack', dmg: 6 + T*2, times: 3, label:'Hammerfall Cascade' };
+        return { type:'attack', dmg: 15 + T*4, times: 1, label:'Sundering Blow' };
+      }
+      const cycle = turn % 4;
+      if (cycle === 2) return { type:'debuff', status: (turn % 8 < 4 ? 'weak' : 'frail'), n: 2, label:'Breath of Ash' };
+      if (cycle === 3) return { type:'attack_block', dmg: 8 + T*3, block: 8 + T*2, label:'Corroded Guard' };
+      return { type:'attack', dmg: 11 + T*3, times: 1, label:'Warhammer Arc' };
+    }
+  },
+};
+
+/* Zorr's names as he wakes, floor by floor */
+const ZORR_TITLES = ['An Echo of Zorr','Zorr, Half-Woken','Zorr, Risen','Zorr, Unbound','Zorr, First of the Sealed'];
+
+/* ---------------- global state ---------------- */
+const G = {
+  screen: 'title',
+  run: null,       // active run
+  combat: null,    // active combat
+};
+
+function newRunState(){
+  const seed = (Math.random()*0xffffffff)>>>0;
+  rng = mulberry32(seed);
+  const deck = [];
+  ['one','one','two','two','three','three','four','four','five','five']
+    .forEach(id => deck.push(makeCard(id, pick([4.5,5.0,5.5,6.0]))));
+  const run = {
+    seed,
+    hp: 70, maxHp: 70,
+    restoration: 40,
+    deck,
+    floor: 1,
+    map: null, pos: null,
+    usedEvents: [],
+    sig: false,
+    startedAt: Date.now(),
+  };
+  return run;
+}
+
+/* --- mid-run persistence: the vault holds your place between sittings --- */
+function saveRun(){
+  const run = G.run;
+  if (!run) return;
+  Store.set(RUN_KEY, { ...run, elapsed: Date.now() - run.startedAt });
+}
+function clearSavedRun(){ Store.set(RUN_KEY, null); }
+function loadSavedRun(){
+  const s = Store.get(RUN_KEY, null);
+  if (!s || !s.map) return null;
+  s.startedAt = Date.now() - (s.elapsed || 0);
+  delete s.elapsed;
+  /* keep uid() ahead of every restored card so new cards never collide */
+  const maxUid = Math.max(0, ...s.deck.map(c => c.uid));
+  _uid = Math.max(_uid, maxUid + 1);
+  return s;
+}
+
+function polishCard(card){
+  const i = GRADE_STEPS.indexOf(card.grade);
+  if (i >= 0 && i < GRADE_STEPS.length - 1) card.grade = GRADE_STEPS[i+1];
+}
+
+/* ---------------- floors & encounters ---------------- */
+const FLOORS = [
+  { name:'The Gardens', label:'FLOOR I — BENEATH THE PARTERRES', rows:6,
+    rooms:['A Hedge of Glass','The Drowned Bosquet','Latona’s Shadow','The Orangerie Gate','A Gravel Walk'],
+    encounters:[['m_cadet'],['m_spider'],['m_silverflash','m_silverflash'],['m_spider','m_cadet']],
+    elites:[['m_enforcer'],['m_tifa','m_silverflash']] },
+  { name:'The Peace Salon', label:'FLOOR II — SALON DE LA PAIX', rows:6,
+    rooms:['The Olive Branch Panel','A Ceiling of Doves','The Broken Armistice','The Gilt Meridian','Minerva’s Alcove'],
+    encounters:[['m_tifa'],['m_magnolia','m_cadet'],['m_veil'],['m_silverflash','m_silverflash','m_cadet']],
+    elites:[['m_cloud'],['m_magnolia','m_enforcer']] },
+  { name:'The War Salon', label:'FLOOR III — SALON DE LA GUERRE', rows:6,
+    rooms:['The Stucco Triumph','A Frieze of Captives','The King on Horseback','Mars Ascendant','The Trophy Wall'],
+    encounters:[['m_cloud'],['m_enforcer','m_cadet'],['m_tornada'],['m_tifa','m_tifa']],
+    elites:[['m_spiderdemon'],['m_cloud','m_enforcer']] },
+  { name:'The King’s Apartments', label:'FLOOR IV — APPARTEMENT DU ROI', rows:7,
+    rooms:['The Council Antechamber','The Bull’s-Eye Salon','The State Bedchamber','A Corridor of Valets','The Clock Cabinet'],
+    encounters:[['m_darkhold','m_veil'],['m_tornada','m_silverflash'],['m_cloud','m_magnolia'],['m_veil','m_veil']],
+    elites:[['m_spiderdemon','m_darkhold'],['m_enforcer','m_enforcer','m_magnolia']] },
+  { name:'The Hall of Mirrors', label:'FLOOR V — GALERIE DES GLACES', rows:7,
+    rooms:['The Seventeenth Arch','A Gallery of Selves','The Candle Meridian','Where the Treaty Waits','The Last Reflection'],
+    encounters:[['m_veil','m_darkhold','m_silverflash'],['m_tornada','m_tornada'],['m_cloud','m_darkhold'],['m_spiderdemon','m_veil']],
+    elites:[['m_spiderdemon','m_spiderdemon'],['m_cloud','m_cloud','m_darkhold']] },
+];
+/* Zorr seals every floor — alone at first, with corrupted escorts as he wakes */
+const FLOOR_BOSSES = [
+  { enemies:['zorr'] },
+  { enemies:['zorr'] },
+  { enemies:['zorr','m_veil'] },
+  { enemies:['zorr','m_darkhold'] },
+  { enemies:['zorr'] },     // the true confrontation — see hp boost in newCombat
+];
+
+/* ---------------- procedural node map ---------------- */
+const NODE_ICONS = { combat:'⚔', elite:'☠', rest:'⌂', event:'❔', curator:'✦', boss:'♛' };
+const NODE_LABELS = { combat:'Mirror Combat', elite:'Elite Guardian', rest:'Quiet Alcove',
+                      event:'Curiosity', curator:'A Curator', boss:'The Floor Warden' };
+
+function genFloorMap(floorIdx){
+  const F = FLOORS[floorIdx];
+  const R = F.rows;                       // interior rows before the boss
+  const nodes = [];
+  let nid = 0;
+  const rowsArr = [];
+  for (let r = 0; r < R; r++){
+    const w = r === 0 ? rndi(2,3) : rndi(2,4);
+    const row = [];
+    for (let i = 0; i < w; i++){
+      const x = w === 1 ? 50 : 14 + (i/(w-1))*72 + rnd(-4,4);
+      const y = 8 + (r/R)*80;
+      row.push({ id:nid++, row:r, x, y, type:'combat', next:[], done:false });
+    }
+    rowsArr.push(row);
+    nodes.push(...row);
+  }
+  /* boss node */
+  const boss = { id:nid++, row:R, x:50, y:94, type:'boss', next:[], done:false };
+  nodes.push(boss);
+  rowsArr.push([boss]);
+
+  /* edges */
+  for (let r = 0; r < R; r++){
+    const cur = rowsArr[r], nxt = rowsArr[r+1];
+    cur.forEach((n,i) => {
+      const a = Math.min(nxt.length-1, Math.floor(i * nxt.length / cur.length));
+      n.next.push(nxt[a].id);
+      if (rng() < 0.42 && a+1 < nxt.length) n.next.push(nxt[a+1].id);
+    });
+    /* guarantee every next-row node is reachable */
+    nxt.forEach((m,j) => {
+      if (!cur.some(n => n.next.includes(m.id))){
+        const src = cur[Math.min(cur.length-1, Math.floor(j * cur.length / nxt.length))];
+        src.next.push(m.id);
+      }
+    });
+  }
+
+  /* assign types to interior rows (row 0 stays combat) */
+  const interior = nodes.filter(n => n.row > 0 && n.row < R);
+  interior.forEach(n => {
+    const r = rng();
+    if      (r < 0.42) n.type = 'combat';
+    else if (r < 0.56 && n.row >= 2) n.type = 'elite';
+    else if (r < 0.74) n.type = 'event';
+    else if (r < 0.87) n.type = 'rest';
+    else               n.type = 'curator';
+  });
+  /* guarantees: at least one rest and one curator per floor */
+  ['rest','curator'].forEach(t => {
+    if (!interior.some(n => n.type === t) && interior.length){
+      const cands = interior.filter(n => n.type === 'combat' || n.type === 'event');
+      pick(cands.length ? cands : interior).type = t;
+    }
+  });
+  /* pre-roll encounters & room names so the map is stable */
+  nodes.forEach(n => {
+    if (n.type === 'combat') { n.fight = pick(F.encounters); n.room = pick(F.rooms); }
+    if (n.type === 'elite')  { n.fight = pick(F.elites);     n.room = pick(F.rooms); }
+    if (n.type === 'boss')   { n.fight = FLOOR_BOSSES[floorIdx].enemies; n.room = ZORR_TITLES[floorIdx]; }
+  });
+  return { nodes, rows: R+1 };
+}
+
+/* ---------------- events ---------------- */
+const EVENTS = [
+  { id:'study', title:'THE PAINTER’S STUDY',
+    body:'A leather folio lies open on an easel: Le Brun’s own preparatory sketches for the frames, ' +
+         'annotated in a hand that trembles more with each page.',
+    choices:[
+      { label:'Sell the sketches later', sub:'+15 ✦ Restoration',
+        fx: run => { run.restoration += 15; return 'You wrap the folio in oilcloth. Forgive me, grand-père.'; } },
+      { label:'Study the technique', sub:'Polish a random card up one grade step',
+        fx: run => { const c = pick(run.deck); polishCard(c); return `You practice his strokes. ${cardName(c)} rises to ${c.grade.toFixed(1)}.`; } },
+    ]},
+  { id:'cracked', title:'THE CRACKED MIRROR',
+    body:'One frame hangs empty and fractured, but deep in the silvering something still moves — ' +
+         'a First Appearance, half-sealed, reaching toward your hand.',
+    choices:[
+      { label:'Reach into the glass', sub:'Gain a high-grade card, take 8 damage',
+        fx: run => { const card = makeCard(pick(META.unlocked), pick([8.0,8.5,9.0,9.2])); addCardToDeck(card);
+          run.hp = Math.max(1, run.hp - 8); return `Glass bites your wrist. You pull free ${cardName(card)} — graded ${card.grade.toFixed(1)}.`; } },
+      { label:'Let it sleep', sub:'Leave, and steady your nerves (+3 HP)',
+        fx: run => { run.hp = Math.min(run.maxHp, run.hp + 3); return 'You bow to the broken frame and move on.'; } },
+    ]},
+  { id:'latona', title:'THE FOUNTAIN BELOW LATONA',
+    body:'Impossible: a fountain runs down here, fed by no pipe you can find. The water smells of ' +
+         'rain on hot gravel — the Gardens above, remembering themselves.',
+    choices:[
+      { label:'Drink', sub:'Heal 15 HP',
+        fx: run => { run.hp = Math.min(run.maxHp, run.hp + 15); return 'Cold light runs through you.'; } },
+      { label:'Wash a wounded card', sub:'Cleanse a random quirk (if any)',
+        fx: run => { const q = run.deck.find(c => c.quirk); if (!q) return 'None of your cards need the water.';
+          q.quirk = null; return `The stains lift from ${cardName(q)}. Its quirk is gone.`; } },
+    ]},
+  { id:'cabinet', title:'A LOCKED CABINET',
+    body:'A curio cabinet of ebony and gilt bronze, sealed with a lock shaped like a sunburst. ' +
+         'Something inside ticks, though no clock face shows.',
+    choices:[
+      { label:'Force the lock', sub:'50%: +25 ✦ — 50%: take 6 damage',
+        fx: run => { if (rng() < 0.5){ run.restoration += 25; return 'The door swings open on a drawer of gold leaf. +25 ✦.'; }
+          run.hp = Math.max(1, run.hp - 6); return 'The sunburst snaps shut on your fingers. The ticking stops.'; } },
+      { label:'Leave it sealed', sub:'+5 ✦ for your restraint',
+        fx: run => { run.restoration += 5; return 'Some doors are locked from the inside. You pocket a loose gilt rosette.'; } },
+    ]},
+  { id:'gardener', title:'THE GARDENER’S GHOST',
+    body:'An old man in a leather apron prunes a rosebush that isn’t there. He does not look up. ' +
+         '“Lost, monsieur? Everyone down here is.”',
+    choices:[
+      { label:'Listen to his stories', sub:'+5 Max HP',
+        fx: run => { run.maxHp += 5; run.hp += 5; return 'He talks of Le Nôtre and of roots that hold the palace up. You feel sturdier.'; } },
+      { label:'Ask about treasure', sub:'+10 ✦ Restoration',
+        fx: run => { run.restoration += 10; return '“Under the third flagstone. It was always under the third flagstone.”'; } },
+    ]},
+  { id:'queen', title:'THE QUEEN’S LOOKING GLASS',
+    body:'A hand mirror on a velvet cushion, small enough to palm. Your reflection in it is a ' +
+         'half-second slow, and it smiles first.',
+    choices:[
+      { label:'Meet its gaze', sub:'Duplicate your highest-grade card, lose 10 ✦',
+        fx: run => { if (run.restoration < 10) return 'The glass clouds over. It wants ✦ 10 you do not have.';
+          run.restoration -= 10; const best = [...run.deck].sort((a,b)=>b.grade-a.grade)[0];
+          const copy = makeCard(best.defId, best.grade, best.quirk); addCardToDeck(copy);
+          return `The mirror keeps your reflection and returns a second ${cardName(best)}.`; } },
+      { label:'Turn it face down', sub:'Nothing happens. Probably.',
+        fx: () => 'You set it down gently, glass to the velvet. The room exhales.' },
+    ]},
+];
+
+/* ---------------- combat engine ---------------- */
+function newCombat(enemyIds, title){
+  const run = G.run;
+  const enemies = enemyIds.map((id, i) => {
+    const d = ENEMIES[id];
+    const tier = run.floor - 1;
+    let hp = Math.round(rndi(d.hp[0], d.hp[1]) * (1 + 0.35*tier) * (run.sig ? 1.28 : 1));
+    let name = d.name;
+    if (id === 'zorr'){
+      name = ZORR_TITLES[run.floor - 1];
+      if (run.floor === 5) hp = Math.round(hp * 1.35);   // the true confrontation
+    }
+    return {
+      id: uid(), defId: id, char: CHARS[d.char], name,
+      hp, maxHp: hp, block: 0, tier, isBoss: !!d.boss,
+      dmgBonus: run.sig ? 2 : 0,
+      status: {}, nextMove: null, slot: i,
+      shakeT: 0, flashT: 0, dead: false, deathT: 0,
+    };
+  });
+  return {
+    title,
+    enemies,
+    turn: 0,
+    phase: 'player',        // player | enemy | won | lost
+    energy: 3, maxEnergy: 3,
+    hand: [], draw: shuffle(run.deck.map(c => c)), discard: [], exhaust: [],
+    block: 0,
+    pStatus: {},
+    playCounts: {},         // card uid -> times played this combat
+    pendingCard: null,      // selected card awaiting a target
+    busy: false,
+    fx: [],                 // canvas effects
+    shakeT: 0,
+  };
+}
+
+const cb = () => G.combat;
+
+/* --- deck flow --- */
+function drawCards(n){
+  const c = cb();
+  for (let i=0;i<n;i++){
+    if (c.draw.length === 0){
+      if (c.discard.length === 0) break;
+      c.draw = shuffle(c.discard); c.discard = [];
+    }
+    if (c.hand.length >= 10) break;
+    c.hand.push(c.draw.pop());
+  }
+}
+
+/* --- damage helpers --- */
+function statusN(ent, key){ return (ent.status ? ent.status[key] : cb().pStatus[key]) || 0; }
+function pStatusN(key){ return cb().pStatus[key] || 0; }
+
+function calcAttack(baseDmg, attackerStatus, targetStatus){
+  let d = baseDmg + (attackerStatus.strength || 0);
+  if (attackerStatus.weak)  d = Math.floor(d * 0.75);
+  if (targetStatus.vuln)    d = Math.floor(d * 1.5);
+  return Math.max(0, d);
+}
+
+function playerAttack(target, base){
+  const c = cb();
+  if (!target || target.dead) target = c.enemies.find(e => !e.dead);
+  if (!target) return;
+  const dmg = calcAttack(base, c.pStatus, target.status);
+  hitEnemy(target, dmg);
+  if (target.status.thorns) damagePlayer(target.status.thorns, true);
+}
+
+function hitEnemy(e, dmg){
+  const c = cb();
+  let rem = dmg;
+  if (e.block > 0){
+    const soak = Math.min(e.block, rem);
+    e.block -= soak; rem -= soak;
+    if (soak > 0) addFx('text', { x:e.cx, y:e.cy-30, txt:''+soak, color:'#9db8d4', small:true });
+  }
+  if (rem > 0){
+    e.hp = Math.max(0, e.hp - rem);
+    e.shakeT = 1; e.flashT = 1;
+    addFx('text', { x:e.cx, y:e.cy-44, txt:''+rem, color:'#f2d0c0' });
+  }
+  if (e.hp <= 0 && !e.dead){
+    e.dead = true; e.deathT = 1;
+    addFx('shatter', { x:e.cx, y:e.cy, hue:e.char.hue });
+  }
+}
+
+function damagePlayer(dmg, isThorns){
+  const c = cb();
+  let rem = dmg;
+  if (!isThorns && c.block > 0){
+    const soak = Math.min(c.block, rem);
+    c.block -= soak; rem -= soak;
+  }
+  if (rem > 0){
+    G.run.hp = Math.max(0, G.run.hp - rem);
+    c.shakeT = 1;
+    addFx('text', { x: CANVAS_W*0.16, y: CANVAS_H*0.55, txt:''+rem, color:'#e08a7c' });
+  }
+  refreshHud();
+  if (G.run.hp <= 0) loseCombat();
+}
+
+function gainBlock(n){
+  const c = cb();
+  if (c.pStatus.frail) n = Math.floor(n * 0.75);
+  c.block += n;
+  addFx('text', { x: CANVAS_W*0.16, y: CANVAS_H*0.55, txt:'+'+n+' 🛡', color:'#9db8d4' });
+}
+
+function applyStatus(ent, key, n){
+  if (ent === 'player'){
+    const st = cb().pStatus;
+    st[key] = (st[key]||0) + n;
+  } else {
+    ent.status[key] = (ent.status[key]||0) + n;
+  }
+}
+
+/* card play API given to card definitions */
+const API = {
+  attack: (t, n) => playerAttack(t, n),
+  attackAll: n => { cb().enemies.filter(e => !e.dead).forEach(e => playerAttack(e, n)); },
+  block:  n => gainBlock(n),
+  draw:   n => { drawCards(n); },
+  status: (t, key, n) => { if (t && !t.dead) applyStatus(t, key, n); },
+  statusSelf: (key, n) => applyStatus('player', key, n),
+  energy: n => { cb().energy += n; },
+  heal:   n => { G.run.hp = Math.min(G.run.maxHp, G.run.hp + n); refreshHud(); },
+  selfDamage: n => damagePlayer(n, true),
+};
+
+async function playCard(card, target){
+  const c = cb();
+  if (c.phase !== 'player' || c.busy) return;
+  const def = cardDef(card);
+  const cost = cardCost(card);
+  if (c.energy < cost) return;
+  c.busy = true;
+  c.energy -= cost;
+  /* remove from hand */
+  c.hand = c.hand.filter(x => x.uid !== card.uid);
+  c.playCounts[card.uid] = (c.playCounts[card.uid] || 0) + 1;
+  def.play(card, API, target);
+  /* quirk side-effects */
+  if (card.quirk === 'haunted') damagePlayer(1, true);
+  let exhausted = !!def.exhausts;
+  if (!exhausted && card.quirk === 'brittle' && rng() < 0.25){
+    exhausted = true;
+    addFx('text', { x: CANVAS_W*0.5, y: CANVAS_H*0.72, txt:'Brittle — crumbled!', color:'#c9a86a', small:true });
+  }
+  (exhausted ? c.exhaust : c.discard).push(card);
+  c.pendingCard = null;
+  refreshCombatUI();
+  await sleep(160);
+  c.busy = false;
+  checkWin();
+  refreshCombatUI();
+}
+
+function checkWin(){
+  const c = cb();
+  if (c.phase === 'lost') return;
+  if (c.enemies.every(e => e.dead) && c.phase !== 'won'){
+    c.phase = 'won';
+    setTimeout(() => winCombat(), 900);
+  }
+}
+
+/* --- turn flow --- */
+function rollEnemyMoves(){
+  const c = cb();
+  c.enemies.forEach(e => {
+    if (e.dead) return;
+    e.nextMove = ENEMIES[e.defId].ai(e, c.turn);
+  });
+}
+
+async function startPlayerTurn(){
+  const c = cb();
+  c.turn++;
+  c.phase = 'player';
+  c.block = 0;
+  c.energy = c.maxEnergy;
+  /* player start-of-turn statuses */
+  if (c.pStatus.regen){ API.heal(c.pStatus.regen); c.pStatus.regen--; if(!c.pStatus.regen) delete c.pStatus.regen; }
+  rollEnemyMoves();
+  drawCards(5);
+  banner('YOUR TURN');
+  refreshCombatUI();
+}
+
+function tickEndOfTurnStatuses(st){
+  ['weak','vuln','frail'].forEach(k => {
+    if (st[k]){ st[k]--; if (st[k] <= 0) delete st[k]; }
+  });
+}
+
+async function endTurn(){
+  const c = cb();
+  if (c.phase !== 'player' || c.busy) return;
+  c.busy = true;
+  c.pendingCard = null;
+  /* discard hand */
+  c.discard.push(...c.hand);
+  c.hand = [];
+  tickEndOfTurnStatuses(c.pStatus);
+  c.phase = 'enemy';
+  refreshCombatUI();
+  banner('THE MIRRORS MOVE');
+  await sleep(650);
+
+  for (const e of c.enemies){
+    if (e.dead || c.phase === 'lost') continue;
+    e.block = 0;
+    const mv = e.nextMove;
+    if (!mv) continue;
+    e.acting = true;
+    await sleep(320);
+    switch(mv.type){
+      case 'attack': {
+        for (let i=0;i<(mv.times||1);i++){
+          if (c.phase === 'lost') break;
+          const dmg = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: c.pStatus.vuln});
+          damagePlayer(dmg);
+          addFx('slash', {});
+          await sleep(260);
+        }
+        break;
+      }
+      case 'block':
+        e.block += mv.block;
+        addFx('text', { x:e.cx, y:e.cy-40, txt:'+'+mv.block+' 🛡', color:'#9db8d4' });
+        break;
+      case 'attack_block': {
+        const dmg = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: c.pStatus.vuln});
+        damagePlayer(dmg); addFx('slash', {});
+        e.block += mv.block;
+        break;
+      }
+      case 'buff':
+        applyStatus(e, mv.status, mv.n);
+        addFx('text', { x:e.cx, y:e.cy-40, txt:'+'+mv.n+' '+(STATUS_META[mv.status].label), color:'#a9d08e' });
+        break;
+      case 'debuff':
+        applyStatus('player', mv.status, mv.n);
+        addFx('text', { x:CANVAS_W*0.16, y:CANVAS_H*0.55, txt:'+'+mv.n+' '+(STATUS_META[mv.status].label), color:'#d08e8e' });
+        break;
+    }
+    tickEndOfTurnStatuses(e.status);
+    e.acting = false;
+    await sleep(300);
+    if (c.phase === 'lost') break;
+  }
+
+  c.busy = false;
+  if (c.phase !== 'lost'){
+    await startPlayerTurn();
+  }
+}
+
+/* --- combat outcomes --- */
+function winCombat(){
+  const run = G.run;
+  const node = currentNode();
+  const isElite = node && (node.type === 'elite' || node.type === 'boss');
+  const resto = (isElite ? 20 : 10) + rndi(0, 6) + run.floor * 2;
+  run.restoration += resto;
+  G.combat = null;
+  showRewardScreen(resto, isElite);
+}
+
+function afterReward(){
+  returnToMap();
+}
+
+/* --- card reward: three graded slabs pulled from the rubble --- */
+function showRewardScreen(resto, isElite){
+  /* elites shake loose better-preserved slabs: roll twice, keep the higher grade */
+  const roll = () => isElite
+    ? makeCard(pick(META.unlocked), Math.max(rollGrade(), rollGrade()))
+    : makeDrop();
+  const offers = [roll(), roll(), roll()];
+  /* discoveries: still-sealed First Appearances surface in the rubble,
+     permanently joining the draft pool once seen */
+  const locked = DROP_POOL.filter(id => !META.unlocked.includes(id));
+  if (locked.length && (isElite || rng() < 0.3)){
+    const id = pick(locked);
+    unlockChar(id);
+    const disc = makeCard(id, isElite ? Math.max(rollGrade(), rollGrade()) : rollGrade());
+    disc._discovery = true;
+    offers[rndi(0, offers.length - 1)] = disc;
+  }
+  $('#reward-resto').innerHTML = `The shattered frames yield <b>✦ ${resto}</b> Restoration.` +
+    `  <span class="small">(You hold ✦ ${G.run.restoration}.)</span>`;
+  const box = $('#reward-cards');
+  box.innerHTML = '';
+  offers.forEach(card => {
+    const el = cardEl(card);
+    el.classList.add('reward-card');
+    el.addEventListener('click', () => {
+      addCardToDeck(card);
+      afterReward();
+    });
+    box.appendChild(el);
+  });
+  showScreen('reward');
+}
+$('#btn-reward-skip').addEventListener('click', () => {
+  G.run.restoration += 6;
+  afterReward();
+});
+
+function loseCombat(){
+  const c = cb();
+  if (c.phase === 'lost') return;
+  c.phase = 'lost';
+  const floorName = FLOORS[G.run.floor - 1].name;
+  META.bestFloor = Math.max(META.bestFloor, G.run.floor);
+  saveMeta();
+  clearSavedRun();
+  setTimeout(() => {
+    $('#death-note').innerHTML =
+      'The last thing you see is your own reflection, smiling without you.<br>' +
+      `<span class="small">Fell in: ${c.title}, ${floorName} — turn ${c.turn}</span>`;
+    showScreen('gameover');
+    G.combat = null;
+  }, 1100);
+}
+
+/* ---------------- fx & canvas rendering ---------------- */
+const CANVAS_W = 1280, CANVAS_H = 720;
+const canvas = $('#combat-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_W; canvas.height = CANVAS_H;
+
+function addFx(type, o){
+  const c = cb(); if (!c) return;
+  if (type === 'text'){
+    c.fx.push({ type, x:o.x, y:o.y, txt:o.txt, color:o.color, small:o.small, t:0, life:1.1 });
+  } else if (type === 'shatter'){
+    const shards = [];
+    for (let i=0;i<26;i++){
+      shards.push({ x:o.x, y:o.y, vx:rnd(-4,4), vy:rnd(-6,1), r:rnd(2,7), a:rnd(0,Math.PI*2), va:rnd(-0.3,0.3) });
+    }
+    c.fx.push({ type, shards, hue:o.hue, t:0, life:1.4 });
+  } else if (type === 'slash'){
+    c.fx.push({ type, t:0, life:0.35 });
+    c.shakeT = Math.max(c.shakeT, 0.7);
+  }
+}
+
+/* enemy layout slots (centered based on count) */
+function enemyLayout(c){
+  const n = c.enemies.length;
+  const cxBase = CANVAS_W*0.62;
+  const gap = 240;
+  c.enemies.forEach((e,i) => {
+    e.cx = cxBase + (i - (n-1)/2) * gap;
+    e.cy = CANVAS_H*0.42;
+  });
+}
+
+let lastT = 0;
+function frame(t){
+  const dt = Math.min(0.05, (t - lastT)/1000 || 0.016);
+  lastT = t;
+  if (G.screen === 'combat' && cb()) drawCombat(dt, t/1000);
+  if (G.screen === 'title') drawTitle(t/1000);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function candleGlow(cx, cy, r, time, seedOff){
+  const flick = 0.85 + 0.15*Math.sin(time*7 + seedOff*13) * Math.sin(time*3.1 + seedOff*7);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r*flick);
+  g.addColorStop(0, 'rgba(255,196,110,.55)');
+  g.addColorStop(0.4, 'rgba(214,142,60,.18)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx-r, cy-r, r*2, r*2);
+  /* flame */
+  ctx.fillStyle = 'rgba(255,222,150,.95)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 2, 2.4, 5 + 1.4*Math.sin(time*9+seedOff*5), 0, 0, 7);
+  ctx.fill();
+}
+
+function drawVaultBackdrop(time){
+  /* wall */
+  const wall = ctx.createLinearGradient(0,0,0,CANVAS_H);
+  wall.addColorStop(0, '#120d09');
+  wall.addColorStop(0.62, '#1d1510');
+  wall.addColorStop(0.66, '#241a12');
+  wall.addColorStop(0.7, '#0e0a07');
+  wall.addColorStop(1, '#080605');
+  ctx.fillStyle = wall;
+  ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+
+  /* arched mirror panels along back wall */
+  for (let i=0;i<6;i++){
+    const px = 60 + i*215, pw = 130, ptop = 110, pbot = CANVAS_H*0.64;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(px, pbot);
+    ctx.lineTo(px, ptop+60);
+    ctx.arc(px+pw/2, ptop+60, pw/2, Math.PI, 0);
+    ctx.lineTo(px+pw, pbot);
+    ctx.closePath();
+    const mg = ctx.createLinearGradient(px,0,px+pw,0);
+    mg.addColorStop(0, 'rgba(38,46,56,.55)');
+    mg.addColorStop(0.5, 'rgba(70,84,98,.4)');
+    mg.addColorStop(1, 'rgba(30,36,44,.55)');
+    ctx.fillStyle = mg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,128,52,.5)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    /* faint diagonal sheen */
+    ctx.clip();
+    ctx.fillStyle = 'rgba(200,215,235,.05)';
+    ctx.beginPath();
+    ctx.moveTo(px - 40 + (Math.sin(time*0.3+i)*10), ptop);
+    ctx.lineTo(px + 30 + (Math.sin(time*0.3+i)*10), ptop);
+    ctx.lineTo(px - 10, pbot); ctx.lineTo(px - 80, pbot);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* floor */
+  const fl = ctx.createLinearGradient(0, CANVAS_H*0.7, 0, CANVAS_H);
+  fl.addColorStop(0, '#191008');
+  fl.addColorStop(1, '#060402');
+  ctx.fillStyle = fl;
+  ctx.fillRect(0, CANVAS_H*0.7, CANVAS_W, CANVAS_H*0.3);
+  /* marble seams */
+  ctx.strokeStyle = 'rgba(201,162,39,.08)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<8;i++){
+    const yy = CANVAS_H*0.72 + i*i*1.9;
+    ctx.beginPath(); ctx.moveTo(0,yy); ctx.lineTo(CANVAS_W,yy); ctx.stroke();
+  }
+
+  /* candle sconces */
+  candleGlow(40,  CANVAS_H*0.32, 90, time, 1);
+  candleGlow(CANVAS_W-40, CANVAS_H*0.32, 90, time, 2);
+  candleGlow(CANVAS_W*0.38, CANVAS_H*0.2, 70, time, 3);
+}
+
+function drawEnemy(e, time, targetable){
+  const w = e.isBoss ? 214 : 170, h = e.isBoss ? 300 : 240;
+  let x = e.cx - w/2, y = e.cy - h/2;
+  if (e.shakeT > 0){ x += Math.sin(e.shakeT*40)*7*e.shakeT; }
+  const dead = e.dead;
+  const da = dead ? Math.max(0, e.deathT) : 1;
+  if (dead && da <= 0) { e.rect = null; return; }
+
+  ctx.save();
+  ctx.globalAlpha = da;
+
+  /* frame — bosses get a holofoil border */
+  ctx.fillStyle = '#0a0705';
+  if (e.isBoss && !targetable){
+    ctx.strokeStyle = `hsl(${(time*70) % 360}, 62%, 58%)`;
+    ctx.shadowColor = `hsl(${(time*70) % 360}, 70%, 55%)`;
+    ctx.shadowBlur = 14;
+  } else {
+    ctx.strokeStyle = targetable ? `rgba(240,217,140,${0.7+0.3*Math.sin(time*6)})` : 'rgba(160,128,52,.85)';
+  }
+  /* enrage: the glass runs hot */
+  if (e.isBoss && !e.dead && e.hp < e.maxHp * 0.5){
+    ctx.shadowColor = 'rgba(220,70,40,.9)';
+    ctx.shadowBlur = 22 + 8*Math.sin(time*5);
+  }
+  ctx.lineWidth = targetable ? 5 : (e.isBoss ? 5 : 4);
+  const arc = 44;
+  ctx.beginPath();
+  ctx.moveTo(x, y+h);
+  ctx.lineTo(x, y+arc);
+  ctx.arc(x+w/2, y+arc, w/2, Math.PI, 0);
+  ctx.lineTo(x+w, y+h);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  /* inner glass */
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x+7, y+h-7);
+  ctx.lineTo(x+7, y+arc);
+  ctx.arc(x+w/2, y+arc, w/2-7, Math.PI, 0);
+  ctx.lineTo(x+w-7, y+h-7);
+  ctx.closePath();
+  const gg = ctx.createLinearGradient(x,y,x,y+h);
+  gg.addColorStop(0, `hsla(${e.char.hue},22%,20%,1)`);
+  gg.addColorStop(1, '#07050a');
+  ctx.fillStyle = gg;
+  ctx.fill();
+  ctx.clip();
+
+  /* portrait or silhouette */
+  const img = portraitCache[cbCharId(e)];
+  if (img && img !== 'missing' && img.complete){
+    const iw = w-14;
+    ctx.globalAlpha = da*0.95;
+    ctx.drawImage(img, x+7, y+18, iw, h-30);
+    ctx.globalAlpha = da;
+  } else {
+    drawSilhouette(ctx, x+30, y+34, w-60, h-70, e.char, 0.95);
+  }
+  /* corrupted flicker */
+  if (e.flashT > 0){
+    ctx.fillStyle = `rgba(255,240,220,${e.flashT*0.55})`;
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.fillStyle = 'rgba(190,60,60,.05)';
+  ctx.fillRect(x, y + (Math.sin(time*2.4+e.slot)*0.5+0.5)*h, w, 4);
+  ctx.restore();
+
+  /* acting glow */
+  if (e.acting){
+    ctx.strokeStyle = 'rgba(220,90,70,.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x-4, y-4, w+8, h+8);
+  }
+
+  /* name plaque */
+  ctx.fillStyle = '#171009';
+  ctx.strokeStyle = 'rgba(160,128,52,.7)';
+  ctx.lineWidth = 1.5;
+  const pw2 = w+16;
+  ctx.fillRect(x-8, y+h+6, pw2, 22);
+  ctx.strokeRect(x-8, y+h+6, pw2, 22);
+  ctx.fillStyle = '#d9c07a';
+  ctx.font = '13px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText(e.name, e.cx, y+h+21);
+
+  /* hp bar */
+  const bw = w+16, bh = 12, bx = x-8, by = y+h+32;
+  ctx.fillStyle = '#241511';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#8c2f24';
+  ctx.fillRect(bx, by, bw*(e.hp/e.maxHp), bh);
+  ctx.strokeStyle = '#000';
+  ctx.strokeRect(bx, by, bw, bh);
+  ctx.fillStyle = '#f0e2c8';
+  ctx.font = '10px Georgia';
+  ctx.fillText(e.hp + ' / ' + e.maxHp, e.cx, by+10);
+
+  /* block chip */
+  if (e.block > 0){
+    ctx.fillStyle = '#20303f';
+    ctx.strokeStyle = '#5d7d9d';
+    ctx.beginPath(); ctx.arc(bx, by+6, 12, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#cfe2f4'; ctx.font = 'bold 11px Georgia';
+    ctx.fillText(e.block, bx, by+10);
+  }
+
+  /* statuses */
+  const sts = Object.keys(e.status);
+  if (sts.length){
+    ctx.font = '11px Georgia';
+    let sx = bx + 4;
+    sts.forEach(k => {
+      const meta = STATUS_META[k];
+      ctx.fillStyle = meta.buff ? '#a9d08e' : '#d08e8e';
+      ctx.textAlign = 'left';
+      ctx.fillText(meta.icon + statusFmt(k, e.status[k]), sx, by+30);
+      sx += 34;
+    });
+    ctx.textAlign = 'center';
+  }
+
+  /* intent */
+  if (!dead && e.nextMove && cb().phase === 'player'){
+    const mv = e.nextMove;
+    ctx.font = '20px Georgia';
+    ctx.fillStyle = '#e8d8b0';
+    let intentTxt = '';
+    if (mv.type === 'attack'){
+      const shown = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: cb().pStatus.vuln});
+      intentTxt = '🗡 ' + shown + (mv.times>1 ? '×'+mv.times : '');
+    }
+    else if (mv.type === 'block') intentTxt = '🛡 ' + mv.block;
+    else if (mv.type === 'attack_block'){
+      const shown = calcAttack(mv.dmg + e.dmgBonus, e.status, {vuln: cb().pStatus.vuln});
+      intentTxt = '🗡 ' + shown + ' 🛡';
+    }
+    else if (mv.type === 'buff') intentTxt = '☗';
+    else if (mv.type === 'debuff') intentTxt = '☄';
+    const bob = Math.sin(time*3 + e.slot)*4;
+    ctx.fillText(intentTxt, e.cx, y - 14 + bob);
+  }
+
+  ctx.restore();
+  e.rect = { x: x-8, y: y-30, w: w+16, h: h+70 };
+}
+function statusFmt(k, n){ return n>1||['weak','vuln','frail','strength','thorns','regen'].includes(k) ? n : ''; }
+function cbCharId(e){ return ENEMIES[e.defId].char; }
+
+function drawCombat(dt, time){
+  const c = cb(); if (!c) return;
+  enemyLayout(c);
+
+  /* decay timers */
+  c.enemies.forEach(e => {
+    e.shakeT = Math.max(0, e.shakeT - dt*3);
+    e.flashT = Math.max(0, e.flashT - dt*4);
+    if (e.dead) e.deathT = Math.max(0, e.deathT - dt*1.2);
+  });
+  c.shakeT = Math.max(0, c.shakeT - dt*2.4);
+
+  ctx.save();
+  if (c.shakeT > 0){
+    ctx.translate(rnd(-6,6)*c.shakeT, rnd(-4,4)*c.shakeT);
+  }
+  drawVaultBackdrop(time);
+
+  const targeting = !!c.pendingCard && cardDef(c.pendingCard).target === 'enemy';
+  c.enemies.forEach(e => drawEnemy(e, time, targeting && !e.dead));
+
+  /* fx */
+  c.fx = c.fx.filter(f => {
+    f.t += dt;
+    const p = f.t / f.life;
+    if (p >= 1) return false;
+    if (f.type === 'text'){
+      ctx.globalAlpha = 1 - p*p;
+      ctx.font = (f.small ? '16px' : 'bold 26px') + ' Georgia';
+      ctx.fillStyle = f.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(f.txt, f.x, f.y - p*46);
+      ctx.globalAlpha = 1;
+    } else if (f.type === 'shatter'){
+      f.shards.forEach(s => {
+        s.x += s.vx; s.y += s.vy; s.vy += 0.25; s.a += s.va;
+        ctx.save();
+        ctx.translate(s.x, s.y); ctx.rotate(s.a);
+        ctx.globalAlpha = (1-p)*0.9;
+        ctx.fillStyle = `hsla(${f.hue},30%,70%,.9)`;
+        ctx.beginPath();
+        ctx.moveTo(0,-s.r); ctx.lineTo(s.r*0.7,s.r*0.6); ctx.lineTo(-s.r*0.7,s.r*0.5);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      });
+      ctx.globalAlpha = 1;
+    } else if (f.type === 'slash'){
+      ctx.strokeStyle = `rgba(240,220,190,${(1-p)*0.8})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_W*0.1 + p*160, CANVAS_H*0.4 + p*120);
+      ctx.lineTo(CANVAS_W*0.22 + p*160, CANVAS_H*0.62 + p*120);
+      ctx.stroke();
+    }
+    return true;
+  });
+
+  /* vignette */
+  const vg = ctx.createRadialGradient(CANVAS_W/2, CANVAS_H/2, CANVAS_H*0.35, CANVAS_W/2, CANVAS_H/2, CANVAS_H*0.85);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,.55)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+  ctx.restore();
+}
+
+/* title screen ambient candles */
+const tcv = $('#title-candles');
+const tcx = tcv.getContext('2d');
+function drawTitle(time){
+  const st = $('#stage');
+  if (tcv.width !== st.clientWidth){ tcv.width = st.clientWidth; tcv.height = st.clientHeight; }
+  tcx.clearRect(0,0,tcv.width,tcv.height);
+  const N = 7;
+  for (let i=0;i<N;i++){
+    const cx = (i+0.5)/N * tcv.width;
+    const cy = tcv.height*0.82 + Math.sin(i*3)*14;
+    const flick = 0.8 + 0.2*Math.sin(time*6 + i*17)*Math.sin(time*2.3+i*5);
+    const g = tcx.createRadialGradient(cx,cy,0,cx,cy,60*flick);
+    g.addColorStop(0,'rgba(255,196,110,.32)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    tcx.fillStyle = g;
+    tcx.fillRect(cx-70,cy-70,140,140);
+    tcx.fillStyle = 'rgba(255,226,160,.9)';
+    tcx.beginPath();
+    tcx.ellipse(cx, cy-3, 1.8, 4.5+Math.sin(time*8+i*3), 0, 0, 7);
+    tcx.fill();
+  }
+}
+
+/* canvas click → targeting */
+canvas.addEventListener('click', ev => {
+  const c = cb();
+  if (!c || c.phase !== 'player' || c.busy) return;
+  if (!c.pendingCard) return;
+  const def = cardDef(c.pendingCard);
+  if (def.target !== 'enemy') return;
+  const r = canvas.getBoundingClientRect();
+  const mx = (ev.clientX - r.left) / r.width * CANVAS_W;
+  const my = (ev.clientY - r.top) / r.height * CANVAS_H;
+  const hit = c.enemies.find(e => !e.dead && e.rect &&
+    mx >= e.rect.x && mx <= e.rect.x+e.rect.w && my >= e.rect.y && my <= e.rect.y+e.rect.h);
+  if (hit) playCard(c.pendingCard, hit);
+});
+window.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape'){
+    const c = cb();
+    if (c){ c.pendingCard = null; refreshCombatUI(); }
+  }
+});
+
+/* ---------------- DOM UI ---------------- */
+function cardEl(card, mini){
+  const def = cardDef(card);
+  const ch = CHARS[def.char];
+  const tier = gradeTier(card.grade);
+  const el = document.createElement('div');
+  const quirk = card.quirk ? QUIRKS[card.quirk] : null;
+  el.className = `card t-${def.type} g-${tier}` + (quirk ? ' qualified' : '') + (mini ? ' mini' : '');
+  el.dataset.uid = card.uid;
+  el.innerHTML = `
+    <div class="slab">
+      <div class="glabel">
+        <span class="gnum">${card.grade.toFixed(1)}</span>
+        <span class="gname">${quirk ? 'QUALIFIED — ' + quirk.label.toUpperCase() : gradeName(card.grade)}<br>FIRST APPEARANCE</span>
+        <span class="serif">LB·${String(card.uid).padStart(4,'0')}</span>
+      </div>
+      <div class="inner">
+        <div class="art"><canvas width="120" height="86" class="sil"></canvas></div>
+        <div class="cname">${ch.name}</div>
+        <div class="ctype">${def.title} — ${def.type}</div>
+        ${quirk ? `<div class="quirkline" title="${quirk.desc}">${quirk.label}: ${quirk.desc}</div>` : ''}
+        <div class="ctext"><span>${def.text(card)}</span></div>
+      </div>
+      <div class="wear"></div>
+    </div>
+    ${card._discovery ? '<div class="discovery">NEWLY FOUND</div>' : ''}
+    <div class="cost">${cardCost(card)}</div>`;
+  /* placeholder art */
+  const sc = el.querySelector('canvas.sil');
+  const sctx = sc.getContext('2d');
+  const img = getPortrait(def.char);
+  if (img !== 'missing' && img.complete){
+    sctx.drawImage(img, 0, 0, sc.width, sc.height);
+  } else {
+    const bg = sctx.createRadialGradient(60,30,4,60,40,70);
+    bg.addColorStop(0, `hsla(${ch.hue},35%,30%,1)`);
+    bg.addColorStop(1, '#0c0806');
+    sctx.fillStyle = bg;
+    sctx.fillRect(0,0,sc.width,sc.height);
+    drawSilhouette(sctx, 30, 8, 60, 74, ch);
+  }
+  return el;
+}
+
+function refreshHand(){
+  const c = cb();
+  const hand = $('#hand');
+  hand.innerHTML = '';
+  if (!c) return;
+  c.hand.forEach(card => {
+    const el = cardEl(card);
+    if (cardCost(card) > c.energy) el.classList.add('unaffordable');
+    if (c.pendingCard && c.pendingCard.uid === card.uid) el.classList.add('selected');
+    el.addEventListener('click', () => onCardClick(card));
+    hand.appendChild(el);
+  });
+}
+
+function onCardClick(card){
+  const c = cb();
+  if (c.phase !== 'player' || c.busy) return;
+  if (cardCost(card) > c.energy) return;
+  const def = cardDef(card);
+  if (def.target === 'enemy'){
+    const alive = c.enemies.filter(e => !e.dead);
+    if (alive.length === 1){ playCard(card, alive[0]); return; }
+    /* toggle selection, wait for canvas click */
+    c.pendingCard = (c.pendingCard && c.pendingCard.uid === card.uid) ? null : card;
+    refreshCombatUI();
+  } else {
+    playCard(card, null);
+  }
+}
+
+function refreshHud(){
+  const run = G.run; if (!run) return;
+  const c = cb();
+  $('#p-hp-fill').style.transform = `scaleX(${run.hp/run.maxHp})`;
+  $('#p-hp-txt').textContent = `${run.hp} / ${run.maxHp}`;
+  $('#p-resto').textContent = run.restoration;
+  const blockChip = $('#p-block-chip');
+  if (c && c.block > 0){ blockChip.classList.add('show'); $('#p-block').textContent = c.block; }
+  else blockChip.classList.remove('show');
+  /* player statuses */
+  const box = $('#p-status');
+  box.innerHTML = '';
+  if (c){
+    Object.entries(c.pStatus).forEach(([k,n]) => {
+      const meta = STATUS_META[k];
+      const s = document.createElement('span');
+      s.className = 'sticon ' + (meta.buff ? 'buff' : 'debuff');
+      s.title = meta.desc;
+      s.textContent = `${meta.icon} ${meta.label} ${n}`;
+      box.appendChild(s);
+    });
+  }
+}
+
+function refreshCombatUI(){
+  const c = cb(); if (!c) return;
+  $('#energy-n').textContent = c.energy;
+  $('#energy-orb').classList.toggle('spent', c.energy === 0);
+  $('#n-draw').textContent = c.draw.length;
+  $('#n-discard').textContent = c.discard.length;
+  $('#n-exhaust').textContent = c.exhaust.length;
+  $('#pile-exhaust').style.display = c.exhaust.length ? '' : 'none';
+  $('#end-turn').disabled = c.phase !== 'player' || c.busy;
+  refreshHand();
+  refreshHud();
+}
+
+let bannerTimer = null;
+function banner(txt){
+  const b = $('#turn-banner');
+  b.textContent = txt;
+  b.style.opacity = 1;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { b.style.opacity = 0; }, 900);
+}
+
+function showPile(title, cards, pickable){
+  $('#ov-title').textContent = title;
+  const body = $('#ov-body');
+  body.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'pile-list';
+  if (!cards.length){
+    body.innerHTML = '<div class="small" style="margin:12px">Empty.</div>';
+  } else {
+    cards.forEach(cd => {
+      const el = cardEl(cd, true);
+      if (pickable){
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          $('#overlay').classList.remove('on');
+          const h = pickHandler; pickHandler = null;
+          if (h) h(cd);
+        });
+      }
+      wrap.appendChild(el);
+    });
+    body.appendChild(wrap);
+  }
+  $('#overlay').classList.add('on');
+}
+$('#ov-close').addEventListener('click', () => $('#overlay').classList.remove('on'));
+$('#pile-draw').addEventListener('click', () => { const c=cb(); if(c) showPile('Draw Pile (shuffled)', [...c.draw].sort((a,b)=>cardName(a).localeCompare(cardName(b)))); });
+$('#pile-discard').addEventListener('click', () => { const c=cb(); if(c) showPile('Discard Pile', c.discard); });
+$('#pile-exhaust').addEventListener('click', () => { const c=cb(); if(c) showPile('Exhausted', c.exhaust); });
+
+/* ---------------- screens & flow ---------------- */
+function showScreen(name){
+  G.screen = name;
+  $$('.screen').forEach(el => el.classList.remove('on'));
+  $('#screen-' + name).classList.add('on');
+}
+
+/* ---------------- vault map flow ---------------- */
+function currentNode(){
+  const run = G.run;
+  if (!run || !run.map || run.pos == null) return null;
+  return run.map.nodes.find(n => n.id === run.pos) || null;
+}
+
+function reachableIds(){
+  const run = G.run;
+  if (!run.map) return [];
+  const node = currentNode();
+  if (!node) return run.map.nodes.filter(n => n.row === 0).map(n => n.id);
+  if (!node.done) return [];              // mid-node (shouldn't happen on map)
+  return node.next;
+}
+
+function renderMap(){
+  const run = G.run;
+  const F = FLOORS[run.floor - 1];
+  $('#map-floor-label').textContent = F.label;
+  $('#map-floor-name').textContent = F.name;
+  $('#map-hp').textContent = run.hp + ' / ' + run.maxHp;
+  $('#map-resto').textContent = run.restoration;
+  $('#map-decksize').textContent = '(' + run.deck.length + ')';
+
+  const wrap = $('#map-wrap');
+  wrap.querySelectorAll('.mapnode').forEach(el => el.remove());
+  const svg = $('#map-svg');
+  svg.innerHTML = '';
+  const reach = reachableIds();
+  const cur = currentNode();
+
+  run.map.nodes.forEach(n => {
+    n.next.forEach(id => {
+      const m = run.map.nodes.find(x => x.id === id);
+      const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+      ln.setAttribute('x1', n.x); ln.setAttribute('y1', n.y);
+      ln.setAttribute('x2', m.x); ln.setAttribute('y2', m.y);
+      if (n.done && m.done) ln.classList.add('walked');
+      svg.appendChild(ln);
+    });
+  });
+
+  run.map.nodes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'mapnode n-' + n.type;
+    if (n.done) el.classList.add('done');
+    if (cur && cur.id === n.id) el.classList.add('current');
+    if (reach.includes(n.id)) el.classList.add('reachable');
+    el.style.left = n.x + '%';
+    el.style.top = n.y + '%';
+    el.innerHTML = NODE_ICONS[n.type] + `<span class="nlbl">${NODE_LABELS[n.type]}</span>`;
+    if (reach.includes(n.id)) el.addEventListener('click', () => enterNode(n));
+    wrap.appendChild(el);
+  });
+}
+
+function showMap(){
+  showScreen('map');
+  renderMap();
+  saveRun();
+}
+
+function enterNode(node){
+  const run = G.run;
+  run.pos = node.id;
+  switch(node.type){
+    case 'combat': case 'elite': case 'boss':
+      startFight(node); break;
+    case 'rest':
+      $('#rest-heal-sub').textContent = `Heal ${Math.round(run.maxHp*0.3)} HP`;
+      showScreen('rest'); break;
+    case 'event':
+      showEvent(); break;
+    case 'curator':
+      showCurator();
+      break;
+  }
+}
+
+function finishNode(){
+  const node = currentNode();
+  if (node) node.done = true;
+  if (node && node.type === 'boss'){ floorTransition(); return; }
+  showMap();
+}
+const returnToMap = finishNode;
+
+/* --- combat launch from a map node --- */
+function startFight(node){
+  const F = FLOORS[G.run.floor - 1];
+  G.combat = newCombat(node.fight, node.room);
+  $('#ct-floor').textContent = F.label;
+  $('#ct-name').textContent = node.room + (node.type === 'elite' ? ' — ELITE' : '');
+  showScreen('combat');
+  startPlayerTurn();
+  if (node.type === 'boss'){
+    setTimeout(() => banner(G.run.floor === 5 ? 'THE FIRST OF THE SEALED' : 'ZORR STIRS BEHIND THE GLASS'), 1000);
+  }
+}
+
+/* --- events & stories --- */
+function showStory(title, body, choices){
+  $('#event-title').textContent = title;
+  $('#event-body').textContent = body;
+  const box = $('#event-choices');
+  box.innerHTML = '';
+  choices.forEach(ch => {
+    const b = document.createElement('button');
+    b.className = 'gbtn';
+    b.innerHTML = ch.label + (ch.sub ? `<span class="sub">${ch.sub}</span>` : '');
+    b.addEventListener('click', () => {
+      const result = ch.fx ? ch.fx(G.run) : '';
+      refreshHud();
+      if (G.run.hp <= 0){ runDied('A choice in the dark went badly.'); return; }
+      if (result){
+        $('#event-body').innerHTML = `<i>${result}</i>`;
+        box.innerHTML = '';
+        const done = document.createElement('button');
+        done.className = 'gbtn';
+        done.textContent = 'CONTINUE';
+        done.addEventListener('click', finishNode);
+        box.appendChild(done);
+      } else finishNode();
+    });
+    box.appendChild(b);
+  });
+  showScreen('event');
+}
+
+function showEvent(){
+  const run = G.run;
+  const fresh = EVENTS.filter(e => !run.usedEvents.includes(e.id));
+  const ev = pick(fresh.length ? fresh : EVENTS);
+  run.usedEvents.push(ev.id);
+  showStory(ev.title, ev.body, ev.choices);
+}
+
+/* --- rest --- */
+$('#btn-rest-heal').addEventListener('click', () => {
+  const run = G.run;
+  run.hp = Math.min(run.maxHp, run.hp + Math.round(run.maxHp*0.3));
+  finishNode();
+});
+$('#btn-rest-polish').addEventListener('click', () => {
+  pickCardFromDeck('Choose a First Appearance to restore (+1 grade step)', card => {
+    polishCard(card);
+    finishNode();
+  });
+});
+
+/* deck viewer & pickers */
+let pickHandler = null;
+function pickCardFromDeck(title, onPick){
+  pickHandler = onPick;
+  showPile(title, G.run.deck, true);
+}
+
+/* ---------------- curators: the life-sim six, between floors ---------------- */
+const CURATORS = {
+  sophia: {
+    char:'sophia', name:'Sophia', tagline:'Portfolio Manager, formerly of the 16th arrondissement',
+    greet:'“Sit, sit. Your cards are assets, monsieur Le Brun, and assets that sit idle are assets ' +
+          'losing to inflation. Shall we make your Restoration work for a living?”',
+    service:{
+      label:'The Versailles Wager',
+      sub: r => `Stake ✦ ${Math.floor(r.restoration/2)} — heads it doubles, tails she keeps it`,
+      canUse: r => r.restoration >= 10,
+      use(r){
+        const s = Math.floor(r.restoration/2);
+        if (rng() < 0.5){ r.restoration += s; return `The coin lands sun-side up. +✦ ${s}. “Compound interest, chéri.”`; }
+        r.restoration -= s; return `The coin lands glass-side. −✦ ${s}. “Market conditions,” she shrugs, pocketing it.`;
+      }
+    }
+  },
+  jorge: {
+    char:'jorge', name:'Jorge', tagline:'Contract Specialist — everything notarized, everything final',
+    greet:'“I don’t do loopholes and I don’t do refunds. You got a card dragging your ledger down, ' +
+          'I’ll write it out of existence. Clean. Legal. Mostly.”',
+    service:{
+      label:'Severance Contract', cost:12,
+      sub: () => 'Pay ✦ 12 — remove one card from your deck, permanently',
+      canUse: r => r.restoration >= 12 && r.deck.length > 5,
+      pickCard:{ title:'Choose a First Appearance to release from service' },
+      use(r, card){
+        r.restoration -= 12;
+        r.deck = r.deck.filter(c => c.uid !== card.uid);
+        return `Jorge stamps the contract. ${cardName(card)} (${card.grade.toFixed(1)}) walks free of the vault.`;
+      }
+    }
+  },
+  nico: {
+    char:'nico', name:'Nico', tagline:'Restoration Artist — “remixes”, he insists, not forgeries',
+    greet:'“Grades are a vibe, my friend. Bring me a slab, I crack it, re-press it, re-grade it. ' +
+          'Usually it comes back better. Usually.”',
+    service:{
+      label:'The Remix', cost:10,
+      sub: () => 'Pay ✦ 10 — re-grade one card (two rolls, keep the higher)',
+      canUse: r => r.restoration >= 10,
+      pickCard:{ title:'Choose a First Appearance to remix' },
+      use(r, card){
+        r.restoration -= 10;
+        const old = card.grade;
+        card.grade = Math.max(rollGrade(), rollGrade());
+        if (card.grade > 3.5 && old <= 3.5) card.quirk = null;
+        if (card.grade <= 3.5 && !card.quirk) card.quirk = pick(Object.keys(QUIRKS));
+        return `Nico works behind a curtain, whistling. ${cardName(card)}: ${old.toFixed(1)} → <b>${card.grade.toFixed(1)}</b>.`;
+      }
+    }
+  },
+  laurent: {
+    char:'laurent', name:'Laurent', tagline:'Master-at-Arms (retired) — posture first, glory later',
+    greet:'“The mirrors hit exactly as hard as you let them. Shoulders back. Breathe from the floor. ' +
+          'Twelve Restoration and I will make your body remember it belongs to a Le Brun.”',
+    service:{
+      label:'The Old Drill', cost:12,
+      sub: () => 'Pay ✦ 12 — +7 Max HP, and heal 7',
+      canUse: r => r.restoration >= 12,
+      use(r){
+        r.restoration -= 12; r.maxHp += 7; r.hp = Math.min(r.maxHp, r.hp + 7);
+        return '“Again. AGAIN. …Acceptable.” You stand straighter than you have in years.';
+      }
+    }
+  },
+  gabbymateo: {
+    char:'gabby', char2:'mateo', name:'Gabby & Mateo', tagline:'A double act — dreams sold separately',
+    greet:'“Welcome, welcome! One night only!” Mateo produces a velvet box; Gabby produces a coin. ' +
+          '“Place a card in the box, flip the coin, and perhaps — PERHAPS — there will be two.”',
+    service:{
+      label:'Double or Nothing', cost:8,
+      sub: () => 'Pay ✦ 8 — 50% chance to duplicate a card of your choice',
+      canUse: r => r.restoration >= 8,
+      pickCard:{ title:'Choose a First Appearance for the box' },
+      use(r, card){
+        r.restoration -= 8;
+        if (rng() < 0.5){
+          addCardToDeck(makeCard(card.defId, card.grade, card.quirk));
+          return `The box opens on TWO ${cardName(card)}s. Gabby takes a bow. Mateo takes the credit.`;
+        }
+        return 'The box opens on one card and a puff of theatrical smoke. “The house,” Mateo says gravely, “always wins.”';
+      }
+    }
+  },
+};
+const CURATOR_KEYS = Object.keys(CURATORS);
+
+function shopPrice(card){
+  let p = Math.round(6 + card.grade * 2.4);
+  if (card.quirk) p = Math.round(p * 0.7);
+  return p;
+}
+
+let curatorVisit = null;
+function showCurator(){
+  const run = G.run;
+  const fresh = CURATOR_KEYS.filter(k => k !== run.lastCurator);
+  const key = pick(fresh);
+  run.lastCurator = key;
+  curatorVisit = { key, usedService:false, stock:[makeDrop(), makeDrop(), makeDrop()], result:null, sold:[] };
+  renderCurator();
+  showScreen('curator');
+}
+
+function renderCurator(){
+  const v = curatorVisit;
+  const C = CURATORS[v.key];
+  const run = G.run;
+  $('#cur-name').textContent = C.name;
+  $('#cur-tagline').textContent = C.tagline;
+  $('#cur-greet').textContent = C.greet;
+  const res = $('#cur-result');
+  if (v.result){ res.style.display = ''; res.innerHTML = '<i>' + v.result + '</i>'; }
+  else res.style.display = 'none';
+
+  /* portrait chip (or two, for the double act) */
+  const pc = $('#cur-portrait');
+  const pctx = pc.getContext('2d');
+  pctx.clearRect(0,0,pc.width,pc.height);
+  const drawChip = (charId, x, w) => {
+    const ch = CHARS[charId];
+    const img = getPortrait(charId);
+    if (img !== 'missing' && img.complete) pctx.drawImage(img, x, 4, w, pc.height-8);
+    else drawSilhouette(pctx, x+6, 8, w-12, pc.height-16, ch);
+  };
+  if (C.char2){ drawChip(C.char, 0, pc.width/2); drawChip(C.char2, pc.width/2, pc.width/2); }
+  else drawChip(C.char, 8, pc.width-16);
+
+  /* service button */
+  const sv = $('#cur-services');
+  sv.innerHTML = '';
+  const b = document.createElement('button');
+  b.className = 'gbtn';
+  const s = C.service;
+  b.innerHTML = s.label + `<span class="sub">${typeof s.sub === 'function' ? s.sub(run) : s.sub}</span>`;
+  b.disabled = v.usedService || !s.canUse(run);
+  b.addEventListener('click', () => {
+    if (v.usedService || !s.canUse(run)) return;
+    if (s.pickCard){
+      pickCardFromDeck(s.pickCard.title, card => {
+        v.usedService = true;
+        v.result = s.use(run, card);
+        renderCurator(); refreshHud();
+      });
+    } else {
+      v.usedService = true;
+      v.result = s.use(run);
+      renderCurator(); refreshHud();
+    }
+  });
+  sv.appendChild(b);
+
+  /* shop stock */
+  const shop = $('#cur-shop');
+  shop.innerHTML = '';
+  v.stock.forEach((card, i) => {
+    const item = document.createElement('div');
+    item.className = 'shopitem';
+    const price = shopPrice(card);
+    const sold = v.sold.includes(i);
+    if (sold) item.classList.add('sold');
+    else if (run.restoration < price) item.classList.add('unaffordable');
+    const el = cardEl(card);
+    if (!sold && run.restoration >= price){
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        run.restoration -= price;
+        addCardToDeck(card);
+        v.sold.push(i);
+        v.result = `${cardName(card)} (${card.grade.toFixed(1)}) joins your ledger for ✦ ${price}.`;
+        renderCurator(); refreshHud();
+      });
+    }
+    item.appendChild(el);
+    const tag = document.createElement('div');
+    tag.className = 'price';
+    tag.textContent = sold ? 'SOLD' : '✦ ' + price;
+    item.appendChild(tag);
+    shop.appendChild(item);
+  });
+}
+$('#btn-cur-leave').addEventListener('click', () => { curatorVisit = null; finishNode(); });
+
+/* --- floor transition & upkeep --- */
+function payUpkeep(){
+  const run = G.run;
+  const report = [];
+  run.deck.forEach(card => {
+    const cost = upkeepCost(card);
+    if (!cost) return;
+    if (run.restoration >= cost){
+      run.restoration -= cost;
+      report.push(`✦ ${cost} spent keeping ${cardName(card)} at ${card.grade.toFixed(1)}.`);
+    } else {
+      const old = card.grade;
+      degradeCard(card);
+      report.push(`No ✦ left for ${cardName(card)} — it wears from ${old.toFixed(1)} to ${card.grade.toFixed(1)}.`);
+    }
+  });
+  return report;
+}
+
+function floorTransition(){
+  const run = G.run;
+  if (run.floor >= FLOORS.length){
+    /* the vault is cleared */
+    const ms = Date.now() - run.startedAt;
+    const mins = Math.floor(ms/60000);
+    META.wins++;
+    if (run.sig) META.sigWins++;
+    META.bestFloor = FLOORS.length;
+    if (META.fastestClearMs == null || ms < META.fastestClearMs) META.fastestClearMs = ms;
+    saveMeta();
+    clearSavedRun();
+    $('#victory-note').innerHTML =
+      'Zorr’s warhammer falls from fingers of ash, and every frame in the Hall of Mirrors ' +
+      'goes quiet at once. The First of the Sealed is sealed no more — he is free, and so are you.<br>' +
+      'The vault is yours, as it was always meant to be.<br><br>' +
+      `<span class="small">Cleared in ${mins} min — ${run.deck.length} First Appearances in the ledger.</span>`;
+    showScreen('victory');
+    return;
+  }
+  const report = payUpkeep();
+  const healed = Math.min(run.maxHp - run.hp, 12);
+  run.hp += healed;
+  run.floor++;
+  run.map = genFloorMap(run.floor - 1);
+  run.pos = null;
+  const F = FLOORS[run.floor - 1];
+  $('#trans-title').textContent = 'THE STAIR WINDS DOWN';
+  $('#trans-body').innerHTML =
+    `Zorr’s frame cracks and gutters out — but the ash does not settle. Somewhere below, ` +
+    `you hear the warhammer dragging itself down the stair, growing heavier.<br>` +
+    `<b style="color:var(--gold-hi)">${F.name}</b> waits below.<br><br>` +
+    (report.length ? '<span class="small">' + report.join('<br>') + '</span><br>' : '') +
+    `<span class="small">You bind your wounds (+${healed} HP).</span>`;
+  showScreen('transition');
+}
+$('#btn-trans-go').addEventListener('click', showMap);
+
+function runDied(note){
+  $('#death-note').innerHTML = note;
+  showScreen('gameover');
+  G.combat = null;
+}
+
+/* ---------------- title, ledger & meta UI ---------------- */
+let sigNext = false;
+function renderTitle(){
+  const saved = Store.get(RUN_KEY, null);
+  $('#btn-continue').style.display = (saved && saved.map) ? '' : 'none';
+  const sigRow = $('#sig-row');
+  if (META.wins > 0){
+    sigRow.style.display = '';
+    $('#btn-sig').innerHTML = (sigNext ? '✒ ' : '') + 'SIGNATURE SERIES: ' + (sigNext ? 'ON' : 'OFF') +
+      ' <span class="small">(+28% enemy HP, harder blows)</span>';
+    $('#btn-sig').style.borderColor = sigNext ? 'var(--gold-hi)' : '';
+  } else sigRow.style.display = 'none';
+  const f = $('#title-foot');
+  if (META.runs === 0){
+    f.textContent = 'The vault remembers nothing yet.';
+  } else {
+    const fastest = META.fastestClearMs != null ? `${Math.floor(META.fastestClearMs/60000)}m ${Math.floor(META.fastestClearMs/1000)%60}s` : '—';
+    f.innerHTML = `The vault remembers: <b>${META.runs}</b> descents · <b>${META.wins}</b> clears` +
+      (META.sigWins ? ` · <b>${META.sigWins}</b> signature clears` : '') +
+      ` · deepest floor <b>${META.bestFloor || '—'}</b> · fastest clear <b>${fastest}</b>` +
+      ` · <b>${META.unlocked.length}/${DROP_POOL.length}</b> First Appearances catalogued`;
+  }
+}
+
+function startNewRun(){
+  META.runs++; saveMeta();
+  G.run = newRunState();
+  G.run.sig = sigNext;
+  G.run.map = genFloorMap(0);
+  showMap();
+}
+
+$('#btn-newrun').addEventListener('click', startNewRun);
+$('#btn-continue').addEventListener('click', () => {
+  const s = loadSavedRun();
+  if (!s){ renderTitle(); return; }
+  G.run = s;
+  showMap();
+});
+$('#btn-sig').addEventListener('click', () => { sigNext = !sigNext; renderTitle(); });
+$('#btn-ledger').addEventListener('click', () => { renderLedger(); showScreen('ledger'); });
+$('#btn-ledger-back').addEventListener('click', () => { showScreen('title'); renderTitle(); });
+
+function renderLedger(){
+  const fastest = META.fastestClearMs != null
+    ? `${Math.floor(META.fastestClearMs/60000)}m ${Math.floor(META.fastestClearMs/1000)%60}s` : '—';
+  $('#ledger-stats').innerHTML = [
+    ['Descents', META.runs],
+    ['Vault Clears', META.wins],
+    ['Signature Clears', META.sigWins],
+    ['Deepest Floor', META.bestFloor || '—'],
+    ['Fastest Clear', fastest],
+  ].map(([k,v]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+
+  const box = $('#ledger-census');
+  box.innerHTML = '';
+  const roster = ['one','two','three','four','five', ...DROP_POOL];
+  roster.forEach(id => {
+    const ch = CHARS[id];
+    const c = META.census[id];
+    const unlockedChar = META.unlocked.includes(id) || ['one','two','three','four','five'].includes(id);
+    const cell = document.createElement('div');
+    cell.className = 'census-cell' + (unlockedChar ? '' : ' locked');
+    const cv = document.createElement('canvas');
+    cv.width = 34; cv.height = 34;
+    const cctx = cv.getContext('2d');
+    if (unlockedChar){
+      const img = getPortrait(id);
+      if (img !== 'missing' && img.complete) cctx.drawImage(img, 0, 0, 34, 34);
+      else drawSilhouette(cctx, 5, 3, 24, 28, ch);
+    } else {
+      cctx.fillStyle = '#241c12'; cctx.fillRect(0,0,34,34);
+      cctx.fillStyle = '#5c5442'; cctx.font = '16px Georgia'; cctx.textAlign = 'center';
+      cctx.fillText('?', 17, 22);
+    }
+    cell.appendChild(cv);
+    const txt = document.createElement('div');
+    txt.innerHTML = `<div class="cn">${unlockedChar ? ch.name : 'Still Sealed'}</div>` +
+      `<div class="cd">${c ? `found ×<b>${c.count}</b>` : (unlockedChar ? 'never restored' : 'undiscovered')}</div>`;
+    cell.appendChild(txt);
+    if (c && c.bestGrade >= 9.0){
+      const g = document.createElement('span');
+      g.className = 'gembadge';
+      g.textContent = c.bestGrade.toFixed(1);
+      g.title = 'Best grade in the census';
+      cell.appendChild(g);
+    } else if (c){
+      const g = document.createElement('span');
+      g.className = 'cd'; g.style.marginLeft = 'auto';
+      g.innerHTML = `<b>${c.bestGrade.toFixed(1)}</b>`;
+      cell.appendChild(g);
+    }
+    box.appendChild(cell);
+  });
+}
+
+$('#btn-viewdeck').addEventListener('click', () => {
+  pickHandler = null;
+  showPile('Your Ledger — ' + G.run.deck.length + ' First Appearances',
+    [...G.run.deck].sort((a,b) => b.grade - a.grade));
+});
+$('#btn-go-title').addEventListener('click', () => { G.run = null; showScreen('title'); renderTitle(); });
+$('#btn-vic-title').addEventListener('click', () => { G.run = null; showScreen('title'); renderTitle(); });
+$('#end-turn').addEventListener('click', endTurn);
+
+showScreen('title');
+renderTitle();
+</script>
+</body>
+</html>
